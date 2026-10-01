@@ -38,6 +38,27 @@ export function placeOnTable(part, others, center, { margin = 10, step = 10, max
   return at(center.x - size.x / 2, center.z - size.z / 2), part // table pleine : au centre
 }
 
+// Glisser une pièce (CdC § 10) : le point saisi `grab` suit le rayon de la souris sur le plan
+// horizontal qui le contient. Renvoie la nouvelle position, arrondie au mm, ou null quand le
+// rayon file vers l'horizon ou part au-dessus du plan.
+export function dragOnPlane(start, grab, ray, maxDistance = 5000) {
+  const t = (grab.y - ray.origin.y) / ray.direction.y
+  if (!(t > 0 && t <= maxDistance)) return null
+  return [
+    Math.round(start[0] + ray.origin.x + t * ray.direction.x - grab.x),
+    start[1],
+    Math.round(start[2] + ray.origin.z + t * ray.direction.z - grab.z),
+  ]
+}
+
+// Flèches du clavier : pas d'un axe du monde, celui qui se rapproche le plus de la direction de
+// l'écran. `away` : direction horizontale « vers le fond de l'écran ». ↑ s'éloigne, → va à droite.
+export function nudge(away, key) {
+  const [ax, az] = Math.abs(away.x) >= Math.abs(away.z) ? [Math.sign(away.x), 0] : [0, Math.sign(away.z)]
+  const moves = { ArrowUp: [ax, az], ArrowDown: [-ax, -az], ArrowRight: [-az, ax], ArrowLeft: [az, -ax] }
+  return moves[key]?.map(v => v || 0) ?? null // pas de -0
+}
+
 // Positions d'un anneau carré de rayon r, les plus proches du centre d'abord.
 function ring(r, step) {
   if (r === 0) return [[0, 0]]

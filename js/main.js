@@ -4,7 +4,7 @@ import { createPartsView } from './parts-view.js'
 import { createPointer } from './pointer.js'
 import { createPanels } from './panels.js'
 import { createDocument, createPart, duplicatePart } from './model.js'
-import { placeOnTable, worldBox } from './geometry.js'
+import { nudge, placeOnTable, worldBox } from './geometry.js'
 
 const container = document.getElementById('vue3d')
 let view
@@ -69,24 +69,51 @@ const actions = {
 
 const panels = createPanels(actions)
 
+// Déplacement en cours : la pièce suit sans repasser par les panneaux
+function moveTo(id, position) {
+  const part = findPart(id)
+  part.position = position
+  partsView.move(part)
+  view.requestRender()
+}
+
 createPointer({
   canvas: view.renderer.domElement,
   camera: view.camera,
+  controls: view.controls,
   partsView,
+  findPart,
   onHover: id => {
     hoveredId = id
     partsView.highlight(hoveredId, selectedId)
     view.requestRender()
   },
   onClick: id => actions.select(id),
+  onDragStart: id => { if (id !== selectedId) actions.select(id) },
+  onDrag: moveTo,
+  onDragEnd: refresh,
 })
 
-// Clavier : Échap désélectionne, Suppr ou ⌫ supprime, ⌘D ou Ctrl+D duplique
+// Direction horizontale « vers le fond de l'écran » : l'axe de visée plus l'axe vertical de la
+// caméra, projetés sur la table (le second prend le relais quand on regarde à la verticale).
+function screenAway() {
+  const e = view.camera.matrixWorld.elements
+  return { x: e[4] - e[8], z: e[6] - e[10] }
+}
+
+// Clavier : Échap désélectionne, Suppr ou ⌫ supprime, ⌘D ou Ctrl+D duplique, les flèches
+// déplacent de 1 mm (10 mm avec Maj)
 addEventListener('keydown', e => {
   if (e.target.closest?.('input, select, textarea')) return
   if (e.key === 'Escape') return actions.select(null)
   if (!selectedId) return
-  if (e.key === 'Delete' || e.key === 'Backspace') {
+  const step = nudge(screenAway(), e.key)
+  if (step) {
+    e.preventDefault()
+    const [x, y, z] = findPart(selectedId).position
+    const d = e.shiftKey ? 10 : 1
+    moveTo(selectedId, [x + step[0] * d, y, z + step[1] * d])
+  } else if (e.key === 'Delete' || e.key === 'Backspace') {
     e.preventDefault()
     actions.remove(selectedId)
   } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'd') {

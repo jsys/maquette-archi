@@ -58,11 +58,19 @@ export function createPartsView(scene, resolution) {
     }
   }
 
+  // Déplacement seul : place l'objet sans relire tout le document (glisser, flèches)
+  function move(part) {
+    const { object } = views.get(part.id)
+    object.position.fromArray(part.position)
+    object.quaternion.fromArray(part.quaternion)
+  }
+
   return {
     sync,
+    move,
     highlight,
     pickables: () => [...views.values()].filter(v => v.object.visible).map(v => v.mesh),
-    idOf: mesh => mesh.parent.userData.partId,
+    idOf: mesh => mesh?.parent.userData.partId ?? null,
   }
 }
 

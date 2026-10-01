@@ -1,7 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { Ray, Vector3 } from '../lib/three/three.core.js'
 import { createDocument, createPart, rectangle } from '../js/model.js'
-import { placeOnTable, worldBox } from '../js/geometry.js'
+import { dragOnPlane, nudge, placeOnTable, worldBox } from '../js/geometry.js'
 
 const near = (a, b) => Math.abs(a - b) < 1e-9
 const plate = (doc, w, h, t = 2) => createPart(doc, { points: rectangle(w, h), thickness: t, materialId: 'carton-gris' })
@@ -57,4 +58,31 @@ test('placeOnTable : une pièce debout compte par son emprise au sol', () => {
   const w = worldBox(wall)
   assert.ok(b.min.z >= w.max.z + 10 - 1e-9 || b.max.z <= w.min.z - 10 + 1e-9 ||
     b.min.x >= w.max.x + 10 - 1e-9 || b.max.x <= w.min.x - 10 + 1e-9)
+})
+
+test('dragOnPlane : le point saisi suit le rayon sur son plan horizontal, au mm près', () => {
+  const grab = new Vector3(0, 2, 0)
+  const down = new Vector3(0, -1, 0)
+  assert.deepEqual(dragOnPlane([-60, 0, 40], grab, new Ray(new Vector3(30.4, 102, -20), down)), [-30, 0, 20])
+  const oblique = new Ray(new Vector3(0, 102, 100), new Vector3(0, -1, -1).normalize())
+  assert.deepEqual(dragOnPlane([0, 5, 0], grab, oblique), [0, 5, 0]) // touche le plan en (0, 2, 0)
+})
+
+test('dragOnPlane : rayon rasant, parallèle ou tourné vers le haut → null', () => {
+  const grab = new Vector3(0, 2, 0)
+  assert.equal(dragOnPlane([0, 0, 0], grab, new Ray(new Vector3(0, 102, 0), new Vector3(1, 0, 0))), null)
+  assert.equal(dragOnPlane([0, 0, 0], grab, new Ray(new Vector3(0, 102, 0), new Vector3(0, 1, 0))), null)
+  const grazing = new Ray(new Vector3(0, 102, 0), new Vector3(1, -0.001, 0).normalize())
+  assert.equal(dragOnPlane([0, 0, 0], grab, grazing), null) // à plus de 5 m
+})
+
+test('nudge : flèches selon l’axe du monde le plus proche de l’écran, sans -0', () => {
+  const towardMinusZ = { x: 0, z: -1 } // caméra par défaut, regarde vers -Z
+  assert.deepEqual(nudge(towardMinusZ, 'ArrowUp'), [0, -1])
+  assert.deepEqual(nudge(towardMinusZ, 'ArrowRight'), [1, 0])
+  assert.deepEqual(nudge(towardMinusZ, 'ArrowLeft'), [-1, 0])
+  assert.deepEqual(nudge(towardMinusZ, 'ArrowDown'), [0, 1])
+  assert.deepEqual(nudge({ x: 0.9, z: 0.2 }, 'ArrowUp'), [1, 0])
+  assert.deepEqual(nudge({ x: 0.9, z: 0.2 }, 'ArrowRight'), [0, 1])
+  assert.equal(nudge(towardMinusZ, 'a'), null)
 })
