@@ -20,6 +20,10 @@ test('placeOnTable : la première pièce est centrée sur le point visé et pos�
   assert.ok(near(b.min.y, 0))
 })
 
+test('placeOnTable : position nettoyée des restes d’arrondi du quart de tour', () => {
+  assert.deepEqual(placeOnTable(plate(createDocument(), 120, 80), [], { x: 0, z: 0 }).position, [-60, 0, 40])
+})
+
 test('placeOnTable : les pièces suivantes ne chevauchent pas et gardent la marge', () => {
   const doc = createDocument()
   for (let i = 0; i < 6; i++) doc.parts.push(placeOnTable(plate(doc, 120, 80), doc.parts, { x: 0, z: 0 }))

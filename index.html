@@ -37,11 +37,31 @@
       </div>
       <label>Matériau <select name="materiau"></select></label>
       <label>Épaisseur <span><input name="epaisseur" type="number" min="0.1" max="50" step="any" value="2" required> mm</span></label>
-      <div class="choix" id="epaisseurs" aria-label="Épaisseurs courantes"></div>
+      <div class="choix" aria-label="Épaisseurs courantes"></div>
       <button type="submit">Créer la plaque</button>
     </form>
   </aside>
 
-  <main id="vue3d"></main>
+  <main id="vue3d">
+    <form id="selection" class="flottant" hidden>
+      <input name="nom" class="nom" aria-label="Nom de la pièce" autocomplete="off" spellcheck="false">
+      <div class="cotes">
+        <label>Largeur <span><input name="largeur" type="number" min="1" max="2000" step="any"> mm</span></label>
+        <label>Hauteur <span><input name="hauteur" type="number" min="1" max="2000" step="any"> mm</span></label>
+      </div>
+      <label>Matériau <select name="materiau"></select></label>
+      <label>Épaisseur <span><input name="epaisseur" type="number" min="0.1" max="50" step="any"> mm</span></label>
+      <div class="choix" aria-label="Épaisseurs courantes"></div>
+      <div class="actions">
+        <button type="button" data-action="dupliquer" title="Dupliquer (⌘D ou Ctrl+D)">Dupliquer</button>
+        <button type="button" data-action="supprimer" title="Supprimer (Suppr)">Supprimer</button>
+      </div>
+    </form>
+  </main>
+
+  <footer id="pieces">
+    <span>Pièces</span>
+    <ul></ul>
+  </footer>
 </body>
 </html>

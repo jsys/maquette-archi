@@ -29,6 +29,8 @@
   mm, épaisseur, matériau, position et quaternion.
 - `js/parts-view.js` reconstruit les maillages depuis le modèle (`sync`), jamais l'inverse.
 - `js/geometry.js` : calculs purs (boîtes, placement), testés dans `test/`.
+- `js/main.js` tient l'état (document, sélection) et les actions ; `js/panels.js` (HTML) et
+  `js/pointer.js` (survol, clic) ne font que les appeler.
 
 ## Publication
 

@@ -8,7 +8,6 @@ Règles du format (identifiants, sentinelles, ce qui entre et sort d'ici) : skil
 
 Étapes du [cahier des charges](cahier-des-charges-maquette-archi.md) § 39.
 
-- `M3` **Sélection** : survol, clic, contour, panneau et dimensions, dupliquer, supprimer, liste des pièces. § 9, § 14, § 15, § 20
 - `M4` **Déplacement** : glisser une pièce, retour visuel. § 10
 - `M5` **Arêtes** : extraction des bords d'une plaque, mode debug (sommets, arêtes, index, candidat). § 32, § 42
 - `M6` **Snap arête → arête** : détection en pixels écran, mise en évidence, pose à 90°. § 11, § 33, § 34. Règles retenues (01/10/2026) : l'arête est le bord du carton ; la tranche de la pièce déplacée se pose sur la face de la cible, centrée sur son bord, face extérieure affleurante ; côté d'où l'on amène la pièce, sinon côté caméra ; bord choisi par longueur la plus proche, puis distance à l'écran.

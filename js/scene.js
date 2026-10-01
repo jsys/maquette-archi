@@ -56,9 +56,11 @@ export function createScene(container) {
     renderer.render(scene, camera)
   })
 
+  const size = new THREE.Vector2() // taille de la vue en pixels CSS (traits épais)
   new ResizeObserver(() => {
     const w = container.clientWidth, h = container.clientHeight
     if (!w || !h) return
+    size.set(w, h)
     renderer.setSize(w, h, false)
     camera.aspect = w / h
     camera.updateProjectionMatrix()
@@ -90,7 +92,7 @@ export function createScene(container) {
   addEventListener('keyup', e => { if (e.code === 'Space') setPan(false) })
   addEventListener('blur', () => setPan(false))
 
-  return { scene, camera, renderer, controls, requestRender, setGrid }
+  return { scene, camera, renderer, controls, size, requestRender, setGrid }
 }
 
 // Grille de la table : un trait fin tous les `step` mm, d'autant plus pâle que le pas est serré
