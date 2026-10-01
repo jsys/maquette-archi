@@ -5,8 +5,9 @@ import { createPointer } from './pointer.js'
 import { createPanels } from './panels.js'
 import { createDebugView } from './debug-view.js'
 import { createDocument, createPart, duplicatePart } from './model.js'
-import { nudge, placeOnTable, worldBox } from './geometry.js'
+import { nudge, placeOnTable, rotatedPose, worldBox } from './geometry.js'
 import { findSnap } from './snap.js'
+import { blockers, excessAlong, overlapping, penetration, sweep } from './collision.js'
 import { download, loadLocal, readFile, saveLocal } from './storage.js'
 import { createHistory } from './history.js'
 
@@ -24,12 +25,19 @@ const partsView = createPartsView(view.scene, view.size)
 const debugView = createDebugView(view.scene)
 let selectedId = null
 let hoveredId = null
+let colliding = new Set() // pièces qui en chevauchent une autre, entourées de rouge
 
 const findPart = id => doc.parts.find(p => p.id === id)
+const fr = n => n.toLocaleString('fr-FR', { maximumFractionDigits: 1 })
+
+// Obstacles d'une pièce : les autres pièces visibles, sauf celles qu'elle chevauche déjà (après
+// un redimensionnement, par exemple) : on doit pouvoir la dégager.
+const obstaclesFor = part => doc.parts.filter(p => p !== part && !p.hidden && !penetration(part, p))
 
 function refresh() {
   partsView.sync(doc)
-  partsView.highlight(hoveredId, selectedId)
+  colliding = overlapping(doc.parts)
+  partsView.highlight(hoveredId, selectedId, colliding)
   panels.render(doc, selectedId)
   debugView.update(doc)
   welcome.hidden = doc.parts.length > 0
@@ -131,6 +139,21 @@ const actions = {
     if (hoveredId === id) hoveredId = null
     refresh()
   },
+  // Quart de tour autour de la verticale (« turn », R) ou bascule vers soi autour de l'axe
+  // horizontal de l'écran (« tilt », B) ; Maj pour l'autre sens. Refusé si la pièce en heurterait une autre.
+  rotate(id, kind, reverse = false) {
+    const part = findPart(id)
+    const [dx, dz] = nudge(screenAway(), 'ArrowRight')
+    const [axis, angle] = kind === 'turn' ? [[0, 1, 0], -Math.PI / 2] : [[dx, 0, dz], Math.PI / 2]
+    const pose = rotatedPose(part, axis, reverse ? -angle : angle)
+    if (blockers({ ...part, ...pose }, obstaclesFor(part)).length) {
+      return showStatus('Rotation impossible : la pièce en heurterait une autre.', true)
+    }
+    remember()
+    Object.assign(part, pose)
+    delete part.attachedTo
+    refresh()
+  },
   toggleHidden(id) {
     remember()
     const part = findPart(id)
@@ -142,11 +165,13 @@ const actions = {
 
 const panels = createPanels(actions)
 
-// Déplacement en cours : la pièce suit sans repasser par les panneaux
+// Flèches du clavier : la pièce avance jusqu'au contact au plus, sans repasser par les panneaux
 function moveTo(id, position) {
-  remember(`nudge:${id}`)
   const part = findPart(id)
-  part.position = position
+  const reached = sweep(part, part.position, position, obstaclesFor(part))
+  if (reached.every((v, i) => v === part.position[i])) return // bloquée
+  remember(`nudge:${id}`)
+  part.position = reached
   delete part.attachedTo
   partsView.move(part)
   if (debugView.enabled) debugView.update(doc)
@@ -154,10 +179,11 @@ function moveTo(id, position) {
   scheduleSave()
 }
 
-// Glisser avec snap (CdC § 11) : la pose libre suit la souris avec l'orientation du départ, puis
-// le snap la remplace s'il trouve un bord. Au relâché, la pièce retient le bord où elle s'appuie
-// (`attachedTo`) : il restera préféré au prochain glisser.
-let drag = null // { quaternion, snap }
+// Glisser avec snap (CdC § 11) : la pose libre suit la souris avec l'orientation du départ, sans
+// traverser les autres pièces (elle s'arrête au contact et longe l'obstacle). Le snap la remplace
+// s'il trouve un bord et que la pièce y tient ; sinon le raccord s'affiche en rouge avec la
+// raison. Au relâché, la pièce retient le bord où elle s'appuie (`attachedTo`), préféré ensuite.
+let drag = null // { quaternion, position: dernière pose libre, obstacles, snap }
 
 // Taille d'un pixel écran au point donné de la scène, en mm
 const pxToWorld = point => 2 * view.camera.position.distanceTo(point) * Math.tan(view.camera.fov * Math.PI / 360) / view.size.y
@@ -167,21 +193,36 @@ function dragStart(id) {
   remember()
   const part = findPart(id)
   const attached = part.attachedTo
-  drag = { quaternion: [...part.quaternion], snap: attached ? { targetId: attached.partId, targetEdge: attached.edge } : null }
+  drag = {
+    quaternion: [...part.quaternion],
+    position: [...part.position],
+    obstacles: obstaclesFor(part),
+    snap: attached ? { targetId: attached.partId, targetEdge: attached.edge } : null,
+  }
 }
 
-function dragMove(id, position, free) {
+function dragMove(id, target, free) {
   const part = findPart(id)
-  part.position = position
   part.quaternion = [...drag.quaternion]
+  drag.position = sweep({ ...part, position: drag.position }, drag.position, target, drag.obstacles)
+  part.position = drag.position
   const targets = doc.parts.filter(p => p !== part && !p.hidden)
-  drag.snap = free ? null : findSnap(part, targets, { pxToWorld, viewPoint: view.camera.position, prefer: drag.snap })
-  if (drag.snap) {
-    part.position = drag.snap.position
-    part.quaternion = drag.snap.quaternion
+  const snap = free ? null : findSnap(part, targets, { pxToWorld, viewPoint: view.camera.position, prefer: drag.snap })
+  let blocked = null
+  if (snap) {
+    const posed = { ...part, position: snap.position, quaternion: snap.quaternion }
+    const hits = blockers(posed, drag.obstacles)
+    if (hits.length) {
+      const excess = excessAlong(posed, hits, snap.line[1].clone().sub(snap.line[0]).normalize())
+      blocked = excess === null ? 'Place occupée' : `Trop long de ${fr(excess)} mm`
+    } else {
+      part.position = snap.position
+      part.quaternion = snap.quaternion
+    }
   }
+  drag.snap = blocked ? null : snap
   partsView.move(part)
-  partsView.showSnap(drag.snap?.line)
+  partsView.showSnap(snap?.line, blocked)
   if (debugView.enabled) debugView.update(doc, drag.snap)
   view.requestRender()
 }
@@ -204,7 +245,7 @@ createPointer({
   findPart,
   onHover: id => {
     hoveredId = id
-    partsView.highlight(hoveredId, selectedId)
+    partsView.highlight(hoveredId, selectedId, colliding)
     view.requestRender()
   },
   onClick: id => actions.select(id),
@@ -247,9 +288,13 @@ addEventListener('keydown', e => {
   } else if (e.key === 'Delete' || e.key === 'Backspace') {
     e.preventDefault()
     actions.remove(selectedId)
-  } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'd') {
+  } else if (command && e.key.toLowerCase() === 'd') {
     e.preventDefault()
     actions.duplicate(selectedId)
+  } else if (!command && e.key.toLowerCase() === 'r') {
+    actions.rotate(selectedId, 'turn', e.shiftKey)
+  } else if (!command && e.key.toLowerCase() === 'b') {
+    actions.rotate(selectedId, 'tilt', e.shiftKey)
   }
 })
 

@@ -12,9 +12,12 @@ export function createPointer({ canvas, camera, controls, partsView, findPart, o
   let hovered = null
   let press = null // appui en cours : { x, y, id, grab, start, dragging }
 
+  // Repères remis à jour ici, sans attendre la prochaine image : une pièce tout juste recréée
+  // (redimensionnée, annulée) se saisit tout de suite
   function aim(e) {
     const r = canvas.getBoundingClientRect()
     ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1)
+    camera.updateMatrixWorld()
     raycaster.setFromCamera(ndc, camera)
   }
 

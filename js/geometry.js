@@ -99,6 +99,23 @@ export function worldBox(part, target = new Box3()) {
   return target
 }
 
+// Pose après une rotation d'`angle` autour de l'axe `axis` ([x, y, z], unitaire) passant par le
+// centre de la pièce. Son point le plus bas ne bouge pas : une plaque posée sur la table s'y
+// relève au lieu de passer dessous.
+export function rotatedPose(part, axis, angle) {
+  const before = worldBox(part)
+  const center = before.getCenter(new Vector3())
+  const turn = new Quaternion().setFromAxisAngle(new Vector3(...axis), angle)
+  const quaternion = turn.clone().multiply(new Quaternion(...part.quaternion)).normalize()
+  const position = new Vector3(...part.position).sub(center).applyQuaternion(turn).add(center)
+  const after = worldBox({ ...part, position: position.toArray(), quaternion: quaternion.toArray() })
+  position.y += before.min.y - after.min.y
+  return {
+    position: position.toArray().map(clean),
+    quaternion: quaternion.toArray().map(c => (Math.abs(c) < 1e-12 ? 0 : c)),
+  }
+}
+
 // Pose la pièce sur la table (Y = 0), dans la zone libre la plus proche de `center` (le point de
 // la table que regarde la caméra), à `margin` mm au moins de l'emprise au sol des autres pièces.
 export function placeOnTable(part, others, center, { margin = 10, step = 10, maxRadius = 2000 } = {}) {

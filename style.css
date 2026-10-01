@@ -78,6 +78,12 @@ button:disabled { opacity: .35; cursor: default; }
 #raccourcis dd { margin: 0; }
 #raccourcis button { justify-self: end; margin-top: .6rem; padding: .35rem 1rem; }
 
+/* Snap refusé : la raison, posée sur le raccord */
+.refus {
+  margin-top: -1.6rem; padding: .15rem .45rem; font-size: .8rem; font-weight: 600; white-space: nowrap;
+  color: #fff; background: var(--danger); border-radius: 4px;
+}
+
 /* Étiquettes du mode debug, posées sur la vue 3D */
 .etiquettes { position: absolute; inset: 0; pointer-events: none; }
 .etiquette {

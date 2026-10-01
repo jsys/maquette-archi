@@ -32,6 +32,11 @@
   Un bord = un segment du contour, donc une tranche du carton (`partEdges`).
 - `js/snap.js` : snap arête → arête, pur et testé ; ses règles sont écrites en tête du fichier.
   Au relâché, la pièce retient le bord où elle s'appuie (`attachedTo`), préféré au glisser suivant.
+- `js/collision.js` : pièces solides (axes séparateurs sur des prismes convexes, contact toléré à
+  0,01 mm). Glisser et flèches s'arrêtent au contact (`sweep`), une rotation ou un snap qui
+  heurterait est refusé, les pièces qui se chevauchent quand même sont entourées de rouge.
+- Rotation (`rotatedPose`) : R quart de tour vertical, B bascule vers soi, Maj l'autre sens ; le
+  point le plus bas de la pièce ne bouge pas.
 - `js/debug-view.js` : mode debug (case « Debug » de l'en-tête), bords et sommets par-dessus tout.
 - `js/history.js` : annuler et rétablir par instantanés du document ; `main.js` photographie juste
   avant chaque changement (`remember`), une rafale de même nature ne fait qu'une étape.

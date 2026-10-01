@@ -4,27 +4,37 @@ import * as THREE from 'three'
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js'
 import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js'
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js'
+import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js'
 import { materialById } from './model.js'
 
-// Contour du survol et de la sélection : l'épaisseur change, pas seulement la couleur (CdC § 35).
+// Contours : survol, sélection, chevauchement. L'épaisseur change, pas seulement la couleur (CdC § 35).
 const ACCENT = 0xd9692b
+const DANGER = 0xd32f2f
 const OUTLINES = {
   hover: new LineMaterial({ color: ACCENT, linewidth: 2, transparent: true, opacity: 0.5 }),
   selected: new LineMaterial({ color: ACCENT, linewidth: 3.5 }),
+  collision: new LineMaterial({ color: DANGER, linewidth: 2.5 }),
 }
-// Raccord du snap en cours (CdC § 11.4) : trait vert épais sur le bord visé, par-dessus tout
-const SNAP = new LineMaterial({ color: 0x16a34a, linewidth: 5, depthTest: false })
+// Raccord du snap en cours (CdC § 11.4) : trait épais sur le bord visé, par-dessus tout ; vert s'il
+// est possible, rouge si la pièce n'y tient pas
+const SNAP = {
+  ok: new LineMaterial({ color: 0x16a34a, linewidth: 5, depthTest: false }),
+  blocked: new LineMaterial({ color: DANGER, linewidth: 5, depthTest: false }),
+}
 
 // `resolution` : taille de la vue en pixels CSS, tenue à jour par la scène. Les traits épais se
 // calculent en pixels et la partagent.
 export function createPartsView(scene, resolution) {
-  for (const m of [...Object.values(OUTLINES), SNAP]) m.uniforms.resolution.value = resolution
+  for (const m of [...Object.values(OUTLINES), ...Object.values(SNAP)]) m.uniforms.resolution.value = resolution
   const group = new THREE.Group()
   scene.add(group)
-  const snapLine = new LineSegments2(new LineSegmentsGeometry(), SNAP)
+  const snapLine = new LineSegments2(new LineSegmentsGeometry(), SNAP.ok)
   snapLine.renderOrder = 11
   snapLine.visible = false
   scene.add(snapLine)
+  const snapLabel = new CSS2DObject(Object.assign(document.createElement('div'), { className: 'refus' }))
+  snapLabel.visible = false
+  scene.add(snapLabel)
   const views = new Map() // id de pièce → { key, object, mesh, edges, outline }
 
   function remove(id) {
@@ -55,9 +65,9 @@ export function createPartsView(scene, resolution) {
     for (const id of views.keys()) if (!alive.has(id)) remove(id)
   }
 
-  function highlight(hovered, selected) {
+  function highlight(hovered, selected, colliding = new Set()) {
     for (const [id, v] of views) {
-      const state = id === selected ? 'selected' : id === hovered ? 'hover' : null
+      const state = id === selected ? 'selected' : colliding.has(id) ? 'collision' : id === hovered ? 'hover' : null
       v.outline.visible = state !== null
       v.edges.visible = state === null
       if (state) v.outline.material = OUTLINES[state]
@@ -72,11 +82,19 @@ export function createPartsView(scene, resolution) {
   }
 
   // Une géométrie neuve à chaque raccord : la remplir à nouveau laisserait ses tampons sur la carte graphique
+  // `blocked` : pourquoi la pièce n'y tient pas (« Trop long de 4 mm »), écrit à côté du trait rouge
   let snapKey = null
-  function showSnap(line) {
+  function showSnap(line, blocked = null) {
     snapLine.visible = !!line
-    const key = line && line.flatMap(p => p.toArray()).join()
-    if (!line || key === snapKey) return
+    snapLabel.visible = !!(line && blocked)
+    if (!line) return
+    snapLine.material = blocked ? SNAP.blocked : SNAP.ok
+    if (blocked) {
+      snapLabel.element.textContent = blocked
+      snapLabel.position.copy(line[0]).lerp(line[1], 0.5)
+    }
+    const key = line.flatMap(p => p.toArray()).join()
+    if (key === snapKey) return
     snapKey = key
     snapLine.geometry.dispose()
     snapLine.geometry = new LineSegmentsGeometry().setPositions(line.flatMap(p => p.toArray()))
@@ -87,7 +105,10 @@ export function createPartsView(scene, resolution) {
     move,
     highlight,
     showSnap,
-    pickables: () => [...views.values()].filter(v => v.object.visible).map(v => v.mesh),
+    pickables() {
+      group.updateMatrixWorld()
+      return [...views.values()].filter(v => v.object.visible).map(v => v.mesh)
+    },
     idOf: mesh => mesh?.parent.userData.partId ?? null,
   }
 }

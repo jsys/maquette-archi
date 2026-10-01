@@ -122,6 +122,8 @@ function setupSelection(actions) {
       form.hauteur.value = rect.height
     })
   }
+  form.querySelector('[data-action="tourner"]').addEventListener('click', e => actions.rotate(part.id, 'turn', e.shiftKey))
+  form.querySelector('[data-action="basculer"]').addEventListener('click', e => actions.rotate(part.id, 'tilt', e.shiftKey))
   form.querySelector('[data-action="dupliquer"]').addEventListener('click', () => actions.duplicate(part.id))
   form.querySelector('[data-action="supprimer"]').addEventListener('click', () => actions.remove(part.id))
 
