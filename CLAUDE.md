@@ -14,7 +14,10 @@
 - **Projet autonome** : aucune dépendance à un autre projet, rien n'est repris d'ailleurs.
 - **Site statique sans build** : `index.html`, CSS, modules ES natifs. Pas de framework, pas de
   compte, pas de serveur applicatif ; la sauvegarde reste dans le navigateur.
-- **Une seule bibliothèque** : three.js, copiée dans le dépôt à version figée, chargée par import map.
+- **Une seule bibliothèque** : three.js 0.186.1, fichiers du paquet npm copiés tels quels dans
+  `lib/three/` (r186 ne publie plus de version minifiée), chargés par import map (`three`,
+  `three/addons/`). Les modules purs importent directement `../lib/three/three.core.js`, qui
+  tourne sous Node sans DOM : c'est ce qui permet des tests sans dépendance.
 - **Prototype** : on cherche la bonne ergonomie du magnétisme (CdC § 40), pas une architecture
   définitive. Une unité three.js = 1 mm, Y vertical.
 - Les modules purs (géométrie, magnétisme, sérialisation) se testent avec `node --test`, sans

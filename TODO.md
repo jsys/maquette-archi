@@ -8,7 +8,6 @@ Règles du format (identifiants, sentinelles, ce qui entre et sort d'ici) : skil
 
 Étapes du [cahier des charges](cahier-des-charges-maquette-archi.md) § 39.
 
-- `M1` **Scène 3D** : page HTML, three.js, caméra, lumière, OrbitControls, grille. § 8, § 19
 - `M2` **Créer une plaque** : rectangle largeur × hauteur, épaisseur, matériau, extrusion. § 6, § 7, § 18
 - `M3` **Sélection** : survol, clic, contour, panneau et dimensions, dupliquer, supprimer, liste des pièces. § 9, § 14, § 15, § 20
 - `M4` **Déplacement** : glisser une pièce, retour visuel. § 10

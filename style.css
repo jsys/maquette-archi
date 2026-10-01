@@ -1,0 +1,24 @@
+:root {
+  --fond: #f4f2ee;
+  --panneau: #fff;
+  --texte: #2b2b2b;
+  --bord: #d9d5cc;
+  font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--texte);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { display: grid; grid-template-rows: auto 1fr; background: var(--fond); }
+
+header {
+  display: flex; align-items: center; gap: 1.5rem;
+  padding: .5rem 1rem; background: var(--panneau); border-bottom: 1px solid var(--bord);
+}
+h1 { margin: 0; font-size: 1rem; font-weight: 600; }
+
+#vue3d { position: relative; min-height: 0; overflow: hidden; }
+#vue3d canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+#vue3d.pan { cursor: grab; }
+
+.erreur { padding: 2rem; }

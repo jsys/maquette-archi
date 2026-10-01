@@ -25,4 +25,4 @@ puis ouvrir http://localhost:8000.
 
 ## Licence
 
-[GNU AGPL v3](LICENSE).
+[GNU AGPL v3](LICENSE). three.js, sous licence MIT, est copié dans `lib/three/`.
