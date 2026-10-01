@@ -3,6 +3,7 @@ import { createScene } from './scene.js'
 import { createPartsView } from './parts-view.js'
 import { createPointer } from './pointer.js'
 import { createPanels } from './panels.js'
+import { createDebugView } from './debug-view.js'
 import { createDocument, createPart, duplicatePart } from './model.js'
 import { nudge, placeOnTable, worldBox } from './geometry.js'
 
@@ -17,6 +18,7 @@ try {
 
 const doc = createDocument()
 const partsView = createPartsView(view.scene, view.size)
+const debugView = createDebugView(view.scene)
 let selectedId = null
 let hoveredId = null
 
@@ -26,6 +28,7 @@ function refresh() {
   partsView.sync(doc)
   partsView.highlight(hoveredId, selectedId)
   panels.render(doc, selectedId)
+  debugView.update(doc)
   view.requestRender()
 }
 
@@ -74,6 +77,7 @@ function moveTo(id, position) {
   const part = findPart(id)
   part.position = position
   partsView.move(part)
+  if (debugView.enabled) debugView.update(doc)
   view.requestRender()
 }
 
@@ -129,5 +133,12 @@ gridSelect.addEventListener('change', () => {
   gridSelect.blur() // rend le clavier à la scène (Espace)
 })
 
-window.maquette = { ...view, doc, partsView, actions } // accès depuis la console, pour le débogage
+document.getElementById('debug').addEventListener('change', e => {
+  debugView.enabled = e.target.checked
+  debugView.update(doc)
+  view.requestRender()
+  e.target.blur()
+})
+
+window.maquette = { ...view, doc, partsView, debugView, actions } // accès depuis la console, pour le débogage
 refresh()

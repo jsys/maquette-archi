@@ -49,6 +49,14 @@ input[type="number"], select {
 input:disabled { color: var(--doux); background: var(--fond); }
 header label { display: flex; align-items: center; gap: .4rem; }
 header select { width: auto; }
+header .debug { margin-left: auto; }
+
+/* Étiquettes du mode debug, posées sur la vue 3D */
+.etiquettes { position: absolute; inset: 0; pointer-events: none; }
+.etiquette {
+  padding: 0 .25rem; font: 600 11px/1.4 ui-monospace, monospace;
+  color: #fff; background: #2f6fde; border-radius: 3px;
+}
 
 .choix { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: -.4rem; }
 .choix button {

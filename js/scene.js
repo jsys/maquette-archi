@@ -2,6 +2,7 @@
 // Unités : 1 unité three.js = 1 mm. Y vertical, la table est le plan Y = 0.
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js'
 
 const TABLE = 600 // côté de la grille, en mm
 const FOND = 0xf4f2ee
@@ -12,6 +13,11 @@ export function createScene(container) {
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = THREE.PCFShadowMap // PCFSoftShadowMap n'existe plus depuis r186
   container.appendChild(renderer.domElement)
+
+  // Étiquettes HTML posées sur la scène (mode debug), au-dessus du canvas
+  const labels = new CSS2DRenderer()
+  labels.domElement.className = 'etiquettes'
+  container.appendChild(labels.domElement)
 
   const scene = new THREE.Scene()
   scene.background = new THREE.Color(FOND)
@@ -54,6 +60,7 @@ export function createScene(container) {
     if (!needsRender) return
     needsRender = false
     renderer.render(scene, camera)
+    labels.render(scene, camera)
   })
 
   const size = new THREE.Vector2() // taille de la vue en pixels CSS (traits épais)
@@ -62,6 +69,7 @@ export function createScene(container) {
     if (!w || !h) return
     size.set(w, h)
     renderer.setSize(w, h, false)
+    labels.setSize(w, h)
     camera.aspect = w / h
     camera.updateProjectionMatrix()
     requestRender()

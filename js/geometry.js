@@ -5,9 +5,52 @@ const ONE = new Vector3(1, 1, 1)
 const EPS = 1e-6 // mm : les quarts de tour laissent des restes de l'ordre de 1e-14
 const clean = v => Math.round(v * 1e6) / 1e6 || 0 // nettoie ces restes (et -0) avant le JSON
 
+// Repère de la pièce : son contour vit dans le plan XY local, son épaisseur selon Z local.
+const partMatrix = part => new Matrix4().compose(new Vector3(...part.position), new Quaternion(...part.quaternion), ONE)
+
+// Aire signée du contour : positive dans le sens trigonométrique.
+export function signedArea(points) {
+  return points.reduce((sum, [x0, y0], i) => {
+    const [x1, y1] = points[(i + 1) % points.length]
+    return sum + x0 * y1 - x1 * y0
+  }, 0) / 2
+}
+
+// Bords d'une pièce (CdC § 32) : un par segment du contour, c'est-à-dire une tranche du carton,
+// représentée par son segment à mi-épaisseur. Chaque bord donne aussi sa normale sortante (dans
+// le plan de la plaque, vers l'extérieur du contour) et la normale de la plaque. `start`, `end`,
+// `center`, `direction`, `outward`, `normal` : dans la scène ; `startLocal`, `endLocal` : dans la pièce.
+export function partEdges(part) {
+  const m = partMatrix(part)
+  const turn = Math.sign(signedArea(part.points)) || 1
+  const z = part.thickness / 2
+  const normal = new Vector3(0, 0, 1).transformDirection(m)
+  return part.points.map(([x0, y0], index) => {
+    const [x1, y1] = part.points[(index + 1) % part.points.length]
+    const length = Math.hypot(x1 - x0, y1 - y0)
+    const startLocal = new Vector3(x0, y0, z)
+    const endLocal = new Vector3(x1, y1, z)
+    const start = startLocal.clone().applyMatrix4(m)
+    const end = endLocal.clone().applyMatrix4(m)
+    return {
+      partId: part.id,
+      index,
+      startLocal,
+      endLocal,
+      start,
+      end,
+      length,
+      center: start.clone().lerp(end, 0.5),
+      direction: end.clone().sub(start).normalize(),
+      outward: new Vector3(turn * (y1 - y0), -turn * (x1 - x0), 0).transformDirection(m),
+      normal: normal.clone(),
+    }
+  })
+}
+
 // Boîte englobante de la pièce dans la scène : le contour à z = 0 et à z = épaisseur, transformé.
 export function worldBox(part, target = new Box3()) {
-  const m = new Matrix4().compose(new Vector3(...part.position), new Quaternion(...part.quaternion), ONE)
+  const m = partMatrix(part)
   const v = new Vector3()
   target.makeEmpty()
   for (const [x, y] of part.points) {

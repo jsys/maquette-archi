@@ -28,7 +28,9 @@
 - `js/model.js` : le document, données pures sérialisables (CdC § 17). Une pièce = contour 2D en
   mm, épaisseur, matériau, position et quaternion.
 - `js/parts-view.js` reconstruit les maillages depuis le modèle (`sync`), jamais l'inverse.
-- `js/geometry.js` : calculs purs (boîtes, placement), testés dans `test/`.
+- `js/geometry.js` : calculs purs (boîtes, placement, bords, glisser), testés dans `test/`.
+  Un bord = un segment du contour, donc une tranche du carton (`partEdges`).
+- `js/debug-view.js` : mode debug (case « Debug » de l'en-tête), bords et sommets par-dessus tout.
 - `js/main.js` tient l'état (document, sélection) et les actions ; `js/panels.js` (HTML) et
   `js/pointer.js` (survol, clic, glisser) ne font que les appeler.
 
