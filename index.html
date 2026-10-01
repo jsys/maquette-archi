@@ -28,13 +28,46 @@
     </label>
     <div class="fichier">
       <span id="etat" class="etat" role="status"></span>
+      <button type="button" class="secondaire icone" id="annuler" title="Annuler (⌘Z ou Ctrl+Z)" aria-label="Annuler" disabled>↶</button>
+      <button type="button" class="secondaire icone" id="retablir" title="Rétablir (⇧⌘Z ou Ctrl+Maj+Z)" aria-label="Rétablir" disabled>↷</button>
       <button type="button" class="secondaire" id="nouveau">Nouveau</button>
       <button type="button" class="secondaire" id="ouvrir">Ouvrir…</button>
       <button type="button" class="secondaire" id="exporter">Exporter</button>
       <input type="file" id="fichier" accept=".json,application/json" hidden>
     </div>
+    <button type="button" class="secondaire icone" id="aide" title="Raccourcis (?)" aria-label="Raccourcis">?</button>
     <label class="debug"><input type="checkbox" id="debug"> Debug</label>
   </header>
+
+  <dialog id="raccourcis">
+    <form method="dialog">
+      <h2>Raccourcis</h2>
+      <h3>Vue 3D</h3>
+      <dl>
+        <dt>Glisser dans le vide</dt><dd>tourner autour de la maquette</dd>
+        <dt>Clic droit, ou Espace + glisser</dt><dd>déplacer la vue</dd>
+        <dt>Molette ou pincement</dt><dd>zoomer vers le curseur</dd>
+      </dl>
+      <h3>Pièces</h3>
+      <dl>
+        <dt>Glisser une pièce</dt><dd>la déplacer ; près du bord d'une autre, elle s'aimante</dd>
+        <dt>⌘ ou Ctrl en glissant</dt><dd>sans aimant</dd>
+        <dt>Flèches</dt><dd>1 mm, 10 mm avec Maj</dd>
+        <dt>⌘D ou Ctrl+D</dt><dd>dupliquer</dd>
+        <dt>Suppr ou ⌫</dt><dd>supprimer</dd>
+        <dt>Échap</dt><dd>désélectionner</dd>
+        <dt>⌘Z ou Ctrl+Z</dt><dd>annuler, avec Maj : rétablir</dd>
+      </dl>
+      <h3>Dessin d'un polygone</h3>
+      <dl>
+        <dt>Clic</dt><dd>poser un point ; sur le premier, ou Entrée : fermer</dd>
+        <dt>Glisser un point</dt><dd>le déplacer ; double-clic : le supprimer</dd>
+        <dt>⌫</dt><dd>retirer le dernier point pendant le tracé</dd>
+        <dt>⌘ ou Ctrl</dt><dd>au mm, sans la grille</dd>
+      </dl>
+      <button class="secondaire">Fermer</button>
+    </form>
+  </dialog>
 
   <aside id="panneau">
     <form id="nouvelle-plaque" data-mode="rectangle">
@@ -61,6 +94,7 @@
   </aside>
 
   <main id="vue3d">
+    <p id="accueil" class="accueil">Créez une plaque à gauche, puis glissez-la près du bord d'une autre : elle s'y aimante.</p>
     <form id="selection" class="flottant" hidden>
       <input name="nom" class="nom" aria-label="Nom de la pièce" autocomplete="off" spellcheck="false">
       <div class="cotes">

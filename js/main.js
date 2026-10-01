@@ -8,6 +8,7 @@ import { createDocument, createPart, duplicatePart } from './model.js'
 import { nudge, placeOnTable, worldBox } from './geometry.js'
 import { findSnap } from './snap.js'
 import { download, loadLocal, readFile, saveLocal } from './storage.js'
+import { createHistory } from './history.js'
 
 const container = document.getElementById('vue3d')
 let view
@@ -31,8 +32,42 @@ function refresh() {
   partsView.highlight(hoveredId, selectedId)
   panels.render(doc, selectedId)
   debugView.update(doc)
+  welcome.hidden = doc.parts.length > 0
   view.requestRender()
   scheduleSave()
+}
+const welcome = document.getElementById('accueil')
+
+// Annuler et rétablir (CdC § 16) : on photographie le document juste avant chaque changement.
+// Une rafale de même nature (frappe d'un nom, flèches sur une pièce) ne fait qu'une étape.
+const undoHistory = createHistory()
+const undoButton = document.getElementById('annuler')
+const redoButton = document.getElementById('retablir')
+let lastRecord = { key: null, time: 0 }
+
+function remember(key = null) {
+  const now = performance.now()
+  const burst = key !== null && key === lastRecord.key && now - lastRecord.time < 1000
+  lastRecord = { key, time: now }
+  if (!burst) undoHistory.record(JSON.stringify(doc.parts))
+  updateUndoButtons()
+}
+
+function travel(step) {
+  if (drag) return
+  const snapshot = undoHistory[step](JSON.stringify(doc.parts))
+  if (!snapshot) return
+  doc.parts = JSON.parse(snapshot)
+  if (!findPart(selectedId)) selectedId = null
+  hoveredId = null
+  lastRecord = { key: null, time: 0 }
+  refresh()
+  updateUndoButtons()
+}
+
+function updateUndoButtons() {
+  undoButton.disabled = !undoHistory.canUndo
+  redoButton.disabled = !undoHistory.canRedo
 }
 
 // Enregistrement dans le navigateur, regroupé : une rafale de changements donne une écriture
@@ -56,6 +91,7 @@ addEventListener('pagehide', () => { if (saveTimer) save() })
 
 // Nouveau document ou fichier ouvert : on garde le même objet, auquel tout le reste est relié
 function replaceDocument(next) {
+  remember()
   doc.parts = next.parts
   selectedId = hoveredId = null
   refresh()
@@ -63,6 +99,7 @@ function replaceDocument(next) {
 
 const actions = {
   create(spec) {
+    remember()
     const part = createPart(doc, spec)
     placeOnTable(part, doc.parts, view.controls.target)
     doc.parts.push(part)
@@ -73,11 +110,13 @@ const actions = {
     refresh()
   },
   update(id, changes) {
+    remember(`update:${id}:${Object.keys(changes)}`)
     Object.assign(findPart(id), changes)
     refresh()
   },
   // La copie se pose dans la zone libre la plus proche de l'original (CdC § 15)
   duplicate(id) {
+    remember()
     const part = findPart(id)
     const box = worldBox(part)
     const copy = duplicatePart(doc, part)
@@ -86,12 +125,14 @@ const actions = {
     actions.select(copy.id)
   },
   remove(id) {
+    remember()
     doc.parts.splice(doc.parts.indexOf(findPart(id)), 1)
     if (selectedId === id) selectedId = null
     if (hoveredId === id) hoveredId = null
     refresh()
   },
   toggleHidden(id) {
+    remember()
     const part = findPart(id)
     part.hidden = !part.hidden
     if (part.hidden && selectedId === id) selectedId = null
@@ -103,6 +144,7 @@ const panels = createPanels(actions)
 
 // Déplacement en cours : la pièce suit sans repasser par les panneaux
 function moveTo(id, position) {
+  remember(`nudge:${id}`)
   const part = findPart(id)
   part.position = position
   delete part.attachedTo
@@ -122,6 +164,7 @@ const pxToWorld = point => 2 * view.camera.position.distanceTo(point) * Math.tan
 
 function dragStart(id) {
   if (id !== selectedId) actions.select(id)
+  remember()
   const part = findPart(id)
   const attached = part.attachedTo
   drag = { quaternion: [...part.quaternion], snap: attached ? { targetId: attached.partId, targetEdge: attached.edge } : null }
@@ -177,10 +220,22 @@ function screenAway() {
   return { x: e[4] - e[8], z: e[6] - e[10] }
 }
 
-// Clavier : Échap désélectionne, Suppr ou ⌫ supprime, ⌘D ou Ctrl+D duplique, les flèches
-// déplacent de 1 mm (10 mm avec Maj)
+// Clavier (fiche « ? ») : ⌘Z ou Ctrl+Z annule, avec Maj rétablit ; Échap désélectionne ; Suppr ou
+// ⌫ supprime, ⌘D ou Ctrl+D duplique, les flèches déplacent de 1 mm (10 mm avec Maj). Dans un
+// champ ou le dessin 2D, le clavier leur appartient.
+const help = document.getElementById('raccourcis')
 addEventListener('keydown', e => {
-  if (e.target.closest?.('input, select, textarea, .editeur')) return
+  if (e.target.closest?.('input, select, textarea, .editeur, dialog')) return
+  const command = e.metaKey || e.ctrlKey
+  if (command && e.key.toLowerCase() === 'z') {
+    e.preventDefault()
+    return travel(e.shiftKey ? 'redo' : 'undo')
+  }
+  if (e.ctrlKey && e.key.toLowerCase() === 'y') {
+    e.preventDefault()
+    return travel('redo')
+  }
+  if (e.key === '?') return help.showModal()
   if (e.key === 'Escape') return actions.select(null)
   if (!selectedId) return
   const step = nudge(screenAway(), e.key)
@@ -224,6 +279,9 @@ fileInput.addEventListener('change', async () => {
   }
 })
 document.getElementById('exporter').addEventListener('click', () => download(doc))
+undoButton.addEventListener('click', () => travel('undo'))
+redoButton.addEventListener('click', () => travel('redo'))
+document.getElementById('aide').addEventListener('click', () => help.showModal())
 
 document.getElementById('debug').addEventListener('change', e => {
   debugView.enabled = e.target.checked
