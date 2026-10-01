@@ -1,4 +1,4 @@
-# Maquette.archi
+# maquette-archi
 
 Dessiner des plaques de carton à plat, leur donner une épaisseur, puis les assembler en 3D par
 magnétisme. Pour les étudiants en architecture, dans le navigateur, sans rien installer.
@@ -21,7 +21,7 @@ Site statique, sans build ni dépendance à installer. Les modules ES exigent un
 python3 -m http.server 8000
 ```
 
-puis ouvrir http://localhost:8000.
+puis ouvrir http://localhost:8000. Tests : `node --test`.
 
 ## Licence
 

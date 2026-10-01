@@ -2,7 +2,7 @@
 
 ## Le projet
 
-**Maquette.archi** : un site web pour dessiner des plaques de carton à plat, leur donner une
+**maquette-archi** : un site web pour dessiner des plaques de carton à plat, leur donner une
 épaisseur et les assembler en 3D par magnétisme. Public visé : étudiants en architecture.
 
 - [cahier-des-charges-maquette-archi.md](cahier-des-charges-maquette-archi.md) : le produit et le
@@ -22,6 +22,13 @@
   définitive. Une unité three.js = 1 mm, Y vertical.
 - Les modules purs (géométrie, magnétisme, sérialisation) se testent avec `node --test`, sans
   dépendance.
+
+## Architecture
+
+- `js/model.js` : le document, données pures sérialisables (CdC § 17). Une pièce = contour 2D en
+  mm, épaisseur, matériau, position et quaternion.
+- `js/parts-view.js` reconstruit les maillages depuis le modèle (`sync`), jamais l'inverse.
+- `js/geometry.js` : calculs purs (boîtes, placement), testés dans `test/`.
 
 ## Publication
 

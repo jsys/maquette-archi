@@ -8,7 +8,6 @@ Règles du format (identifiants, sentinelles, ce qui entre et sort d'ici) : skil
 
 Étapes du [cahier des charges](cahier-des-charges-maquette-archi.md) § 39.
 
-- `M2` **Créer une plaque** : rectangle largeur × hauteur, épaisseur, matériau, extrusion. § 6, § 7, § 18
 - `M3` **Sélection** : survol, clic, contour, panneau et dimensions, dupliquer, supprimer, liste des pièces. § 9, § 14, § 15, § 20
 - `M4` **Déplacement** : glisser une pièce, retour visuel. § 10
 - `M5` **Arêtes** : extraction des bords d'une plaque, mode debug (sommets, arêtes, index, candidat). § 32, § 42
@@ -22,7 +21,7 @@ Règles du format (identifiants, sentinelles, ce qui entre et sort d'ici) : skil
 
 ## Mise en ligne
 
-- `ML1` **Domaine définitif** : le choisir et le brancher sur GitHub Pages avant d'annoncer le site, car la sauvegarde navigateur est liée au domaine. `.archi` est réservé aux architectes membres de l'UIA et à leurs organisations (01/10/2026).
+- `ML1` **Domaine définitif** : le choisir et le brancher sur GitHub Pages avant d'annoncer le site, car la sauvegarde navigateur est liée au domaine.
 - `ML2` **Mentions légales** : éditeur (identité, contact) et hébergeur (GitHub), obligatoires en France.
 
 → prochain : `ML3`

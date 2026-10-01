@@ -2,23 +2,61 @@
   --fond: #f4f2ee;
   --panneau: #fff;
   --texte: #2b2b2b;
+  --doux: #6b665d;
   --bord: #d9d5cc;
+  --accent: #d9692b;
   font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
   color: var(--texte);
 }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
-body { display: grid; grid-template-rows: auto 1fr; background: var(--fond); }
+body {
+  display: grid;
+  grid-template: "haut haut" auto "panneau vue" 1fr / 15rem 1fr;
+  background: var(--fond);
+}
 
 header {
+  grid-area: haut;
   display: flex; align-items: center; gap: 1.5rem;
   padding: .5rem 1rem; background: var(--panneau); border-bottom: 1px solid var(--bord);
 }
-h1 { margin: 0; font-size: 1rem; font-weight: 600; }
+.depot { color: var(--texte); font-weight: 600; text-decoration: none; }
+.depot:hover { text-decoration: underline; }
 
-#vue3d { position: relative; min-height: 0; overflow: hidden; }
+#panneau {
+  grid-area: panneau; overflow-y: auto;
+  padding: 1rem; background: var(--panneau); border-right: 1px solid var(--bord);
+}
+#vue3d { grid-area: vue; position: relative; min-height: 0; overflow: hidden; }
 #vue3d canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 #vue3d.pan { cursor: grab; }
+
+form { display: grid; gap: .8rem; }
+h2 { margin: 0; font-size: .95rem; }
+label { display: grid; gap: .25rem; color: var(--doux); font-size: .85rem; }
+label span { display: flex; align-items: center; gap: .4rem; color: var(--texte); }
+.cotes { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+input, select, button { font: inherit; color: inherit; }
+input[type="number"], select {
+  width: 100%; padding: .3rem .45rem;
+  background: #fff; border: 1px solid var(--bord); border-radius: 4px;
+}
+header label { display: flex; align-items: center; gap: .4rem; }
+header select { width: auto; }
+
+.choix { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: -.4rem; }
+.choix button {
+  min-width: 2rem; padding: .15rem .4rem; cursor: pointer;
+  background: #fff; border: 1px solid var(--bord); border-radius: 999px;
+}
+.choix button[aria-pressed="true"] { background: var(--texte); border-color: var(--texte); color: #fff; }
+
+button[type="submit"] {
+  padding: .5rem; cursor: pointer;
+  background: var(--texte); color: #fff; border: 0; border-radius: 4px; font-weight: 600;
+}
+button[type="submit"]:hover { background: #000; }
 
 .erreur { padding: 2rem; }

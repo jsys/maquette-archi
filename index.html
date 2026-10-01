@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Maquette.archi</title>
+  <title>maquette-archi</title>
   <meta name="description" content="Dessiner des plaques de carton à plat, puis les assembler en 3D par magnétisme.">
   <link rel="stylesheet" href="style.css">
   <script type="importmap">
@@ -18,7 +18,7 @@
 </head>
 <body>
   <header>
-    <h1>Maquette.archi</h1>
+    <a class="depot" href="https://github.com/jsys/maquette-archi" target="_blank" rel="noopener">github.com/jsys/maquette-archi</a>
     <label>Grille
       <select id="grille">
         <option value="1">1 mm</option>
@@ -27,6 +27,21 @@
       </select>
     </label>
   </header>
+
+  <aside id="panneau">
+    <form id="nouvelle-plaque">
+      <h2>Nouvelle plaque</h2>
+      <div class="cotes">
+        <label>Largeur <span><input name="largeur" type="number" min="1" max="2000" step="any" value="120" required> mm</span></label>
+        <label>Hauteur <span><input name="hauteur" type="number" min="1" max="2000" step="any" value="80" required> mm</span></label>
+      </div>
+      <label>Matériau <select name="materiau"></select></label>
+      <label>Épaisseur <span><input name="epaisseur" type="number" min="0.1" max="50" step="any" value="2" required> mm</span></label>
+      <div class="choix" id="epaisseurs" aria-label="Épaisseurs courantes"></div>
+      <button type="submit">Créer la plaque</button>
+    </form>
+  </aside>
+
   <main id="vue3d"></main>
 </body>
 </html>

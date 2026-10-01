@@ -1,8 +1,8 @@
-# Cahier des charges — Maquette.archi
+# Cahier des charges — maquette-archi
 
 ## 1. Présentation du projet
 
-**Nom de travail :** Maquette.archi  
+**Nom de travail :** maquette-archi, [dépôt GitHub](https://github.com/jsys/maquette-archi)  
 **Type :** application web de modélisation 3D simplifiée pour maquettes d'architecture  
 **Public principal :** étudiants en architecture, enseignants, maquettistes et designers  
 **Objectif :** permettre de créer très rapidement une maquette architecturale composée de plaques planes ayant une épaisseur, puis de les assembler en 3D grâce à un système de magnétisme simple.
@@ -102,7 +102,7 @@ Interface desktop avec deux espaces principaux.
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│ Maquette.archi                                  [Sauvegarder]│
+│ jsys/maquette-archi                             [Sauvegarder]│
 ├───────────────────┬─────────────────────────────────────────┤
 │                   │                                         │
 │   ÉDITEUR 2D      │               VUE 3D                    │
@@ -1134,13 +1134,12 @@ Ajoute un mode debug permettant d'afficher :
 
 # 43. Nom de domaine / marque
 
-Nom envisagé :
-
-**Maquette.archi**
+Nom et domaine : à décider. En attendant, le projet vit sur
+[github.com/jsys/maquette-archi](https://github.com/jsys/maquette-archi).
 
 Positionnement possible :
 
-> Maquette.archi — Simple architectural model maker
+> Simple architectural model maker
 
 Version française :
 
