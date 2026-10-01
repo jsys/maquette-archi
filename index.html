@@ -26,6 +26,13 @@
         <option value="10" selected>10 mm</option>
       </select>
     </label>
+    <div class="fichier">
+      <span id="etat" class="etat" role="status"></span>
+      <button type="button" class="secondaire" id="nouveau">Nouveau</button>
+      <button type="button" class="secondaire" id="ouvrir">Ouvrir…</button>
+      <button type="button" class="secondaire" id="exporter">Exporter</button>
+      <input type="file" id="fichier" accept=".json,application/json" hidden>
+    </div>
     <label class="debug"><input type="checkbox" id="debug"> Debug</label>
   </header>
 

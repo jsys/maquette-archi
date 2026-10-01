@@ -7,6 +7,7 @@ import { createDebugView } from './debug-view.js'
 import { createDocument, createPart, duplicatePart } from './model.js'
 import { nudge, placeOnTable, worldBox } from './geometry.js'
 import { findSnap } from './snap.js'
+import { download, loadLocal, readFile, saveLocal } from './storage.js'
 
 const container = document.getElementById('vue3d')
 let view
@@ -17,7 +18,7 @@ try {
   throw e
 }
 
-const doc = createDocument()
+const doc = loadLocal() ?? createDocument() // la séance précédente, enregistrée dans ce navigateur
 const partsView = createPartsView(view.scene, view.size)
 const debugView = createDebugView(view.scene)
 let selectedId = null
@@ -31,6 +32,33 @@ function refresh() {
   panels.render(doc, selectedId)
   debugView.update(doc)
   view.requestRender()
+  scheduleSave()
+}
+
+// Enregistrement dans le navigateur, regroupé : une rafale de changements donne une écriture
+const status = document.getElementById('etat')
+let saveTimer = 0
+function scheduleSave() {
+  clearTimeout(saveTimer)
+  saveTimer = setTimeout(save, 300)
+}
+function save() {
+  clearTimeout(saveTimer)
+  saveTimer = 0
+  const ok = saveLocal(doc)
+  showStatus(ok ? 'Enregistré dans ce navigateur' : 'Enregistrement impossible dans ce navigateur', !ok)
+}
+function showStatus(text, isError = false) {
+  status.textContent = text
+  status.classList.toggle('erreur-etat', isError)
+}
+addEventListener('pagehide', () => { if (saveTimer) save() })
+
+// Nouveau document ou fichier ouvert : on garde le même objet, auquel tout le reste est relié
+function replaceDocument(next) {
+  doc.parts = next.parts
+  selectedId = hoveredId = null
+  refresh()
 }
 
 const actions = {
@@ -81,6 +109,7 @@ function moveTo(id, position) {
   partsView.move(part)
   if (debugView.enabled) debugView.update(doc)
   view.requestRender()
+  scheduleSave()
 }
 
 // Glisser avec snap (CdC § 11) : la pose libre suit la souris avec l'orientation du départ, puis
@@ -175,6 +204,26 @@ gridSelect.addEventListener('change', () => {
   view.setGrid(Number(gridSelect.value))
   gridSelect.blur() // rend le clavier à la scène (Espace)
 })
+
+// Fichiers (CdC § 17). Remplacer une maquette non vide se confirme : l'enregistrement
+// automatique écraserait l'ancienne.
+const replaceOk = () => !doc.parts.length || confirm('Remplacer la maquette en cours ? Exportez-la d’abord pour la garder.')
+const fileInput = document.getElementById('fichier')
+document.getElementById('nouveau').addEventListener('click', () => {
+  if (replaceOk()) replaceDocument(createDocument())
+})
+document.getElementById('ouvrir').addEventListener('click', () => fileInput.click())
+fileInput.addEventListener('change', async () => {
+  const [file] = fileInput.files
+  fileInput.value = '' // rouvrir le même fichier redéclenche l'événement
+  if (!file || !replaceOk()) return
+  try {
+    replaceDocument(await readFile(file))
+  } catch (e) {
+    showStatus(`${file.name} : ${e.message}`, true)
+  }
+})
+document.getElementById('exporter').addEventListener('click', () => download(doc))
 
 document.getElementById('debug').addEventListener('change', e => {
   debugView.enabled = e.target.checked
