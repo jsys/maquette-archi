@@ -30,6 +30,8 @@
 - `js/parts-view.js` reconstruit les maillages depuis le modèle (`sync`), jamais l'inverse.
 - `js/geometry.js` : calculs purs (boîtes, placement, bords, glisser), testés dans `test/`.
   Un bord = un segment du contour, donc une tranche du carton (`partEdges`).
+- `js/snap.js` : snap arête → arête, pur et testé ; ses règles sont écrites en tête du fichier.
+  Au relâché, la pièce retient le bord où elle s'appuie (`attachedTo`), préféré au glisser suivant.
 - `js/debug-view.js` : mode debug (case « Debug » de l'en-tête), bords et sommets par-dessus tout.
 - `js/main.js` tient l'état (document, sélection) et les actions ; `js/panels.js` (HTML) et
   `js/pointer.js` (survol, clic, glisser) ne font que les appeler.

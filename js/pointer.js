@@ -62,7 +62,7 @@ export function createPointer({ canvas, camera, controls, partsView, findPart, o
     }
     aim(e)
     const position = dragOnPlane(press.start, press.grab, raycaster.ray)
-    if (position) onDrag(press.id, position)
+    if (position) onDrag(press.id, position, e.metaKey || e.ctrlKey) // ⌘ ou Ctrl : sans aimant
   })
 
   canvas.addEventListener('pointerup', e => {

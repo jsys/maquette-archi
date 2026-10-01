@@ -20,9 +20,14 @@ export function createDebugView(scene) {
     }
   }
 
-  function update(doc) {
+  // `snap` : candidat courant, étiqueté « pièce·bord visé ← bord de la pièce déplacée »
+  function update(doc, snap = null) {
     clear()
     if (!enabled) return
+    if (snap) {
+      const at = snap.line[0].clone().lerp(snap.line[1], 0.5).add(new THREE.Vector3(0, 10, 0))
+      group.add(label(`${snap.targetId}·${snap.targetEdge} ← ${snap.movingEdge}`, at))
+    }
     const edges = [], normals = [], vertices = []
     for (const part of doc.parts) {
       if (part.hidden) continue

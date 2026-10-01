@@ -12,13 +12,19 @@ const OUTLINES = {
   hover: new LineMaterial({ color: ACCENT, linewidth: 2, transparent: true, opacity: 0.5 }),
   selected: new LineMaterial({ color: ACCENT, linewidth: 3.5 }),
 }
+// Raccord du snap en cours (CdC § 11.4) : trait vert épais sur le bord visé, par-dessus tout
+const SNAP = new LineMaterial({ color: 0x16a34a, linewidth: 5, depthTest: false })
 
 // `resolution` : taille de la vue en pixels CSS, tenue à jour par la scène. Les traits épais se
 // calculent en pixels et la partagent.
 export function createPartsView(scene, resolution) {
-  for (const m of Object.values(OUTLINES)) m.uniforms.resolution.value = resolution
+  for (const m of [...Object.values(OUTLINES), SNAP]) m.uniforms.resolution.value = resolution
   const group = new THREE.Group()
   scene.add(group)
+  const snapLine = new LineSegments2(new LineSegmentsGeometry(), SNAP)
+  snapLine.renderOrder = 11
+  snapLine.visible = false
+  scene.add(snapLine)
   const views = new Map() // id de pièce → { key, object, mesh, edges, outline }
 
   function remove(id) {
@@ -65,10 +71,22 @@ export function createPartsView(scene, resolution) {
     object.quaternion.fromArray(part.quaternion)
   }
 
+  // Une géométrie neuve à chaque raccord : la remplir à nouveau laisserait ses tampons sur la carte graphique
+  let snapKey = null
+  function showSnap(line) {
+    snapLine.visible = !!line
+    const key = line && line.flatMap(p => p.toArray()).join()
+    if (!line || key === snapKey) return
+    snapKey = key
+    snapLine.geometry.dispose()
+    snapLine.geometry = new LineSegmentsGeometry().setPositions(line.flatMap(p => p.toArray()))
+  }
+
   return {
     sync,
     move,
     highlight,
+    showSnap,
     pickables: () => [...views.values()].filter(v => v.object.visible).map(v => v.mesh),
     idOf: mesh => mesh?.parent.userData.partId ?? null,
   }

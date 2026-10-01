@@ -3,10 +3,14 @@ import { Box3, Matrix4, Quaternion, Vector3 } from '../lib/three/three.core.js'
 
 const ONE = new Vector3(1, 1, 1)
 const EPS = 1e-6 // mm : les quarts de tour laissent des restes de l'ordre de 1e-14
-const clean = v => Math.round(v * 1e6) / 1e6 || 0 // nettoie ces restes (et -0) avant le JSON
+
+// Nettoie ces restes (et -0) avant qu'ils n'atterrissent dans le JSON.
+export const clean = v => Math.round(v * 1e6) / 1e6 || 0
 
 // Repère de la pièce : son contour vit dans le plan XY local, son épaisseur selon Z local.
-const partMatrix = part => new Matrix4().compose(new Vector3(...part.position), new Quaternion(...part.quaternion), ONE)
+export function partMatrix(part) {
+  return new Matrix4().compose(new Vector3(...part.position), new Quaternion(...part.quaternion), ONE)
+}
 
 // Aire signée du contour : positive dans le sens trigonométrique.
 export function signedArea(points) {

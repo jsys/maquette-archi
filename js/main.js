@@ -6,6 +6,7 @@ import { createPanels } from './panels.js'
 import { createDebugView } from './debug-view.js'
 import { createDocument, createPart, duplicatePart } from './model.js'
 import { nudge, placeOnTable, worldBox } from './geometry.js'
+import { findSnap } from './snap.js'
 
 const container = document.getElementById('vue3d')
 let view
@@ -76,9 +77,51 @@ const panels = createPanels(actions)
 function moveTo(id, position) {
   const part = findPart(id)
   part.position = position
+  delete part.attachedTo
   partsView.move(part)
   if (debugView.enabled) debugView.update(doc)
   view.requestRender()
+}
+
+// Glisser avec snap (CdC § 11) : la pose libre suit la souris avec l'orientation du départ, puis
+// le snap la remplace s'il trouve un bord. Au relâché, la pièce retient le bord où elle s'appuie
+// (`attachedTo`) : il restera préféré au prochain glisser.
+let drag = null // { quaternion, snap }
+
+// Taille d'un pixel écran au point donné de la scène, en mm
+const pxToWorld = point => 2 * view.camera.position.distanceTo(point) * Math.tan(view.camera.fov * Math.PI / 360) / view.size.y
+
+function dragStart(id) {
+  if (id !== selectedId) actions.select(id)
+  const part = findPart(id)
+  const attached = part.attachedTo
+  drag = { quaternion: [...part.quaternion], snap: attached ? { targetId: attached.partId, targetEdge: attached.edge } : null }
+}
+
+function dragMove(id, position, free) {
+  const part = findPart(id)
+  part.position = position
+  part.quaternion = [...drag.quaternion]
+  const targets = doc.parts.filter(p => p !== part && !p.hidden)
+  drag.snap = free ? null : findSnap(part, targets, { pxToWorld, viewPoint: view.camera.position, prefer: drag.snap })
+  if (drag.snap) {
+    part.position = drag.snap.position
+    part.quaternion = drag.snap.quaternion
+  }
+  partsView.move(part)
+  partsView.showSnap(drag.snap?.line)
+  if (debugView.enabled) debugView.update(doc, drag.snap)
+  view.requestRender()
+}
+
+function dragEnd(id) {
+  const part = findPart(id)
+  const { snap } = drag
+  if (snap) part.attachedTo = { partId: snap.targetId, edge: snap.targetEdge, ownEdge: snap.movingEdge }
+  else delete part.attachedTo
+  drag = null
+  partsView.showSnap(null)
+  refresh()
 }
 
 createPointer({
@@ -93,9 +136,9 @@ createPointer({
     view.requestRender()
   },
   onClick: id => actions.select(id),
-  onDragStart: id => { if (id !== selectedId) actions.select(id) },
-  onDrag: moveTo,
-  onDragEnd: refresh,
+  onDragStart: dragStart,
+  onDrag: dragMove,
+  onDragEnd: dragEnd,
 })
 
 // Direction horizontale « vers le fond de l'écran » : l'axe de visée plus l'axe vertical de la
