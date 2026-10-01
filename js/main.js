@@ -151,7 +151,7 @@ function screenAway() {
 // Clavier : Échap désélectionne, Suppr ou ⌫ supprime, ⌘D ou Ctrl+D duplique, les flèches
 // déplacent de 1 mm (10 mm avec Maj)
 addEventListener('keydown', e => {
-  if (e.target.closest?.('input, select, textarea')) return
+  if (e.target.closest?.('input, select, textarea, .editeur')) return
   if (e.key === 'Escape') return actions.select(null)
   if (!selectedId) return
   const step = nudge(screenAway(), e.key)

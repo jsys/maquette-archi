@@ -15,9 +15,14 @@
 html, body { margin: 0; height: 100%; }
 body {
   display: grid;
-  grid-template: "haut haut" auto "panneau vue" 1fr "panneau pieces" auto / 15rem 1fr;
+  grid-template: "haut haut" auto "panneau vue" 1fr "panneau pieces" auto / 20rem 1fr;
   background: var(--fond);
 }
+/* Panneau replié : toute la place à la vue 3D (CdC § 5, mode « assemblage ») */
+body.replie { grid-template-columns: 2.75rem 1fr; }
+body.replie #panneau { padding: .6rem .4rem; }
+body.replie #nouvelle-plaque > :not(.titre), body.replie .titre h2 { display: none; }
+body.replie #replier { transform: rotate(180deg); }
 
 header {
   grid-area: haut;
@@ -70,6 +75,44 @@ button[type="submit"] {
   background: var(--texte); color: #fff; border: 0; border-radius: 4px; font-weight: 600;
 }
 button[type="submit"]:hover { background: #000; }
+button[type="submit"]:disabled { opacity: .35; cursor: not-allowed; }
+button.secondaire {
+  padding: .35rem; cursor: pointer;
+  background: #fff; border: 1px solid var(--bord); border-radius: 4px;
+}
+button.secondaire:hover { border-color: var(--texte); }
+
+/* Nouvelle plaque : titre repliable, forme, dessin 2D */
+.titre { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+#replier {
+  width: 1.9rem; height: 1.9rem; flex: none; cursor: pointer; font-size: 1.2rem; line-height: 1;
+  background: #fff; border: 1px solid var(--bord); border-radius: 4px;
+}
+.modes { display: flex; overflow: hidden; border: 1px solid var(--bord); border-radius: 6px; }
+.modes button { flex: 1; padding: .35rem; cursor: pointer; background: #fff; border: 0; }
+.modes button + button { border-left: 1px solid var(--bord); }
+.modes button[aria-pressed="true"] { background: var(--texte); color: #fff; }
+form[data-mode="rectangle"] .poly-seulement, form[data-mode="polygone"] .rect-seulement { display: none; }
+.consigne { margin: -.3rem 0 0; color: var(--doux); font-size: .8rem; }
+
+.editeur {
+  display: block; width: 100%; aspect-ratio: 1; touch-action: none;
+  background: #fbfaf8; border: 1px solid var(--bord); border-radius: 6px;
+}
+.editeur:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+form[data-mode="polygone"] .editeur { cursor: crosshair; }
+.editeur * { vector-effect: non-scaling-stroke; }
+.editeur .grille { fill: none; stroke: #e8e3da; stroke-width: 1; }
+.editeur .grille.majeure { stroke: #d4cdc0; }
+.editeur .forme { fill: #cfc6b5; stroke: var(--texte); stroke-width: 1.5; }
+.editeur .trace { fill: none; stroke: var(--texte); stroke-width: 1.5; }
+.editeur .fermeture { stroke: var(--doux); stroke-width: 1; stroke-dasharray: 4 3; }
+.editeur .point { fill: #fff; stroke: var(--texte); stroke-width: 1.5; cursor: grab; }
+.editeur .point.premier { fill: var(--accent); stroke: var(--accent); }
+.editeur .cote {
+  fill: var(--texte); font-family: system-ui, sans-serif; text-anchor: middle; dominant-baseline: middle;
+  paint-order: stroke; stroke: #fbfaf8; stroke-width: 3px; pointer-events: none;
+}
 
 /* Pièce sélectionnée : panneau posé sur la vue 3D */
 .flottant {

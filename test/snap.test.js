@@ -93,3 +93,14 @@ test('mur posé dans un coin : il reste sur son bord, et le bord préféré dép
   assert.equal(again.targetId, floor.id)
   assert.deepEqual(again.position, front.position)
 })
+
+test('pignon (polygone) près du bord gauche : il se dresse sur sa base de 80, faîtage en haut', () => {
+  // À plat, base de 80 le long de X ; son côté droit (60, le long de Z) à x = -63, à 3 mm du bord
+  // gauche du sol, milieux alignés
+  const gable = Object.assign(createPart(doc, { points: [[0, 0], [80, 0], [80, 60], [40, 100], [0, 60]], thickness: 2, materialId: 'carton-gris' }), {
+    position: [-143, 0, 40],
+  })
+  const snap = findSnap(gable, [floor], options)
+  assert.equal(snap.movingEdge, 0) // la base, seule de longueur 80
+  assertBox(boxOf(gable, snap), [-60, -58, 2, 102, -40, 40])
+})

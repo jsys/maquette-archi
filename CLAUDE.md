@@ -33,6 +33,8 @@
 - `js/snap.js` : snap arête → arête, pur et testé ; ses règles sont écrites en tête du fichier.
   Au relâché, la pièce retient le bord où elle s'appuie (`attachedTo`), préféré au glisser suivant.
 - `js/debug-view.js` : mode debug (case « Debug » de l'en-tête), bords et sommets par-dessus tout.
+- `js/editor2d.js` : dessin SVG de la nouvelle plaque (rectangle coté ou polygone), Y vers le haut ;
+  le contour est contrôlé (`contourProblem`) et rangé (`normalizeContour`) avant l'extrusion.
 - `js/main.js` tient l'état (document, sélection) et les actions ; `js/panels.js` (HTML) et
   `js/pointer.js` (survol, clic, glisser) ne font que les appeler.
 

@@ -8,7 +8,6 @@ Règles du format (identifiants, sentinelles, ce qui entre et sort d'ici) : skil
 
 Étapes du [cahier des charges](cahier-des-charges-maquette-archi.md) § 39.
 
-- `M7` **Éditeur 2D** : rectangle, polygone (ajouter, fermer, déplacer, supprimer un point), mise en page. § 5, § 6
 - `M8` **Sauvegarde** : navigateur, export et import JSON. § 17
 - `M9` **Finitions** : annuler et rétablir, raccourcis, interface. § 16
 - `M10` **Test d'usage** : le scénario de la maison, sans tutoriel, en moins de 5 minutes. § 28, § 29

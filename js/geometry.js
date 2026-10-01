@@ -20,6 +20,41 @@ export function signedArea(points) {
   }, 0) / 2
 }
 
+// Ce qui empêche un contour de faire une plaque, ou null (CdC § 6.1) : moins de trois points,
+// deux points consécutifs confondus, côtés qui se recoupent, surface nulle.
+export function contourProblem(points) {
+  const n = points.length
+  if (n < 3) return 'Il faut au moins trois points.'
+  const side = i => [points[i], points[(i + 1) % n]]
+  if (points.some((p, i) => p[0] === side(i)[1][0] && p[1] === side(i)[1][1])) return 'Deux points consécutifs sont confondus.'
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 2; j < n; j++) {
+      if (i === 0 && j === n - 1) continue // côtés voisins par le premier point
+      if (segmentsMeet(...side(i), ...side(j))) return 'Le contour se recoupe.'
+    }
+  }
+  if (Math.abs(signedArea(points)) < 1) return 'Le contour n’a pas de surface.'
+  return null
+}
+
+// Les segments [a, b] et [c, d] se croisent-ils ou se touchent-ils ?
+function segmentsMeet(a, b, c, d) {
+  const turn = (p, q, r) => Math.sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]))
+  const within = (p, q, r) => Math.min(p[0], q[0]) <= r[0] && r[0] <= Math.max(p[0], q[0])
+    && Math.min(p[1], q[1]) <= r[1] && r[1] <= Math.max(p[1], q[1])
+  const t1 = turn(a, b, c), t2 = turn(a, b, d), t3 = turn(c, d, a), t4 = turn(c, d, b)
+  if (t1 !== t2 && t3 !== t4) return true
+  return (t1 === 0 && within(a, b, c)) || (t2 === 0 && within(a, b, d))
+    || (t3 === 0 && within(c, d, a)) || (t4 === 0 && within(c, d, b))
+}
+
+// Contour rangé : sens trigonométrique, coin bas-gauche de son cadre à l'origine (comme rectangle()).
+export function normalizeContour(points) {
+  const ccw = signedArea(points) < 0 ? [...points].reverse() : points
+  const minX = Math.min(...ccw.map(p => p[0])), minY = Math.min(...ccw.map(p => p[1]))
+  return ccw.map(([x, y]) => [clean(x - minX), clean(y - minY)])
+}
+
 // Bords d'une pièce (CdC § 32) : un par segment du contour, c'est-à-dire une tranche du carton,
 // représentée par son segment à mi-épaisseur. Chaque bord donne aussi sa normale sortante (dans
 // le plan de la plaque, vers l'extérieur du contour) et la normale de la plaque. `start`, `end`,

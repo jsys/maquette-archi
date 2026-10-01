@@ -30,12 +30,22 @@
   </header>
 
   <aside id="panneau">
-    <form id="nouvelle-plaque">
-      <h2>Nouvelle plaque</h2>
-      <div class="cotes">
+    <form id="nouvelle-plaque" data-mode="rectangle">
+      <div class="titre">
+        <h2>Nouvelle plaque</h2>
+        <button type="button" id="replier" title="Replier le panneau" aria-expanded="true">‹</button>
+      </div>
+      <div class="modes" role="group" aria-label="Forme">
+        <button type="button" data-mode="rectangle" aria-pressed="true">Rectangle</button>
+        <button type="button" data-mode="polygone" aria-pressed="false">Polygone</button>
+      </div>
+      <svg class="editeur" tabindex="0" role="img" aria-label="Dessin de la plaque"></svg>
+      <p class="consigne" hidden></p>
+      <div class="cotes rect-seulement">
         <label>Largeur <span><input name="largeur" type="number" min="1" max="2000" step="any" value="120" required> mm</span></label>
         <label>Hauteur <span><input name="hauteur" type="number" min="1" max="2000" step="any" value="80" required> mm</span></label>
       </div>
+      <button type="button" class="secondaire poly-seulement" data-action="effacer">Effacer le contour</button>
       <label>Matériau <select name="materiau"></select></label>
       <label>Épaisseur <span><input name="epaisseur" type="number" min="0.1" max="50" step="any" value="2" required> mm</span></label>
       <div class="choix" aria-label="Épaisseurs courantes"></div>

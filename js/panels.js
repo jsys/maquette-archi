@@ -1,5 +1,6 @@
 // Panneaux HTML : nouvelle plaque (CdC § 6), pièce sélectionnée (§ 9, § 20), liste des pièces (§ 14).
 import { MATERIALS, THICKNESSES, materialById, rectSize, rectangle } from './model.js'
+import { createEditor2d } from './editor2d.js'
 
 const fr = n => n.toLocaleString('fr-FR')
 
@@ -50,16 +51,52 @@ function bindMaterialAndThickness(form, onChange = () => {}) {
   return mark
 }
 
+// Panneau « Nouvelle plaque » : forme (rectangle coté ou polygone dessiné), matériau, épaisseur.
+// Le panneau se replie pour laisser toute la place à la vue 3D (CdC § 5).
 function setupNewPlate(create) {
   const form = document.getElementById('nouvelle-plaque')
+  const hint = form.querySelector('.consigne')
+  const submit = form.querySelector('button[type="submit"]')
+  const editor = createEditor2d(form.querySelector('.editeur'), {
+    step: () => Number(document.getElementById('grille').value),
+    onChange: update,
+  })
+  function update() {
+    const status = editor.status()
+    hint.textContent = status ?? ''
+    hint.hidden = !status
+    submit.disabled = !editor.contour()
+  }
+  function resize() {
+    const width = form.largeur.valueAsNumber, height = form.hauteur.valueAsNumber
+    if (width > 0 && height > 0) editor.setSize(width, height)
+    update()
+  }
+
   bindMaterialAndThickness(form)
+  for (const button of form.querySelectorAll('[data-mode]')) {
+    button.addEventListener('click', () => {
+      const mode = button.dataset.mode
+      for (const b of form.querySelectorAll('[data-mode]')) b.setAttribute('aria-pressed', b === button)
+      form.dataset.mode = mode
+      form.largeur.disabled = form.hauteur.disabled = mode !== 'rectangle' // hors validation
+      editor.setMode(mode)
+    })
+  }
+  form.largeur.addEventListener('input', resize)
+  form.hauteur.addEventListener('input', resize)
+  form.querySelector('[data-action="effacer"]').addEventListener('click', () => editor.clear())
   form.addEventListener('submit', e => {
     e.preventDefault()
-    create({
-      points: rectangle(form.largeur.valueAsNumber, form.hauteur.valueAsNumber),
-      thickness: form.epaisseur.valueAsNumber,
-      materialId: form.materiau.value,
-    })
+    const points = editor.contour()
+    if (points) create({ points, thickness: form.epaisseur.valueAsNumber, materialId: form.materiau.value })
+  })
+  resize()
+
+  document.getElementById('replier').addEventListener('click', e => {
+    const folded = document.body.classList.toggle('replie')
+    e.currentTarget.setAttribute('aria-expanded', !folded)
+    e.currentTarget.title = folded ? 'Déplier le panneau' : 'Replier le panneau'
   })
 }
 
@@ -92,10 +129,12 @@ function setupSelection(actions) {
     part = doc.parts.find(p => p.id === selectedId) ?? null
     form.hidden = !part
     if (!part) return
+    // Polygone : son cadre, en lecture seule
     const rect = rectSize(part.points)
+    const extent = axis => Math.max(...part.points.map(p => p[axis])) - Math.min(...part.points.map(p => p[axis]))
     set(form.nom, part.name)
-    set(form.largeur, rect?.width ?? '')
-    set(form.hauteur, rect?.height ?? '')
+    set(form.largeur, rect?.width ?? Math.round(extent(0) * 10) / 10)
+    set(form.hauteur, rect?.height ?? Math.round(extent(1) * 10) / 10)
     form.largeur.disabled = form.hauteur.disabled = !rect
     set(form.materiau, part.materialId)
     set(form.epaisseur, part.thickness)
