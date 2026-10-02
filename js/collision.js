@@ -74,8 +74,8 @@ export function sweep(part, from, to, obstacles, { table = true } = {}) {
   return position.map(clean)
 }
 
-// Ce qui dépasse quand une pièce bute aux deux bouts de sa place : le long de `axis` (le bord
-// visé), ce que chaque pièce heurtée mord sur l'une de ses extrémités, additionné. null si l'une
+// Ce qui dépasse quand une pièce bute aux bouts de sa place : le long de `axis` (le bord visé),
+// ce que les pièces heurtées mordent sur son début et sur sa fin, { start, end }. null si l'une
 // d'elles ne couvre aucune extrémité, ou les deux : la place est prise.
 export function excessAlong(part, hits, axis) {
   const [m0, m1] = extent(vertices(part), axis)
@@ -87,7 +87,7 @@ export function excessAlong(part, hits, axis) {
     if (coversStart) start = Math.max(start, b1 - m0)
     else end = Math.max(end, m1 - b0)
   }
-  return start + end < m1 - m0 ? clean(start + end) : null
+  return start + end < m1 - m0 ? { start: clean(start), end: clean(end) } : null
 }
 
 // Prismes d'une pièce dans la scène, gardés tant qu'elle ne bouge pas (les obstacles d'un glisser).

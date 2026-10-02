@@ -28,8 +28,9 @@ Le logiciel doit être utilisable sans connaissance préalable de la modélisati
 ## Principes
 
 - pas de vocabulaire CAD complexe ;
-- pas de manipulation directe des axes X / Y / Z dans l'interface principale ;
-- pas de gizmo complexe type Blender ;
+- pas de manipulation des axes X / Y / Z comme geste principal : seules trois flèches, sur la
+  pièce sélectionnée, servent aux déplacements précis (§ 10) ;
+- pas de gizmo complexe type Blender (ni plans ni anneaux de rotation) ;
 - priorité au glisser-déposer ;
 - retour visuel permanent ;
 - magnétisme évident ;
@@ -281,7 +282,14 @@ Le prototype peut d'abord utiliser une méthode simplifiée :
 - déplacement sur un plan temporaire ;
 - déplacement relatif à la caméra.
 
-Éviter d'exposer directement trois flèches X / Y / Z à l'utilisateur.
+Le glisser reste le geste principal. Pour un déplacement précis, la pièce sélectionnée porte trois
+flèches selon les axes (la verte monte et descend) : on en glisse une, la pièce suit au mm.
+Décision du 02/10/2026, à la demande de l'utilisateur ; elle remplace « éviter d'exposer trois
+flèches X / Y / Z ».
+
+Les pièces sont solides : le glisser s'arrête au contact. Le magnétisme, lui, se cherche là où la
+souris amène la pièce, au-delà des obstacles : un mur atteint le bord opposé du sol sans faire le
+tour de la maquette.
 
 ---
 
@@ -390,6 +398,11 @@ Exemple :
 Deux plaques de 2 mm assemblées à angle droit ne doivent pas forcément se chevaucher géométriquement.
 
 Le MVP peut accepter une approximation visuelle.
+
+Dans le prototype (02/10/2026), les pièces sont solides et ne se chevauchent pas. Quand un mur
+aimanté bute sur ses voisins (« Trop long de 4 mm »), un bouton le raccourcit de ce qui dépasse et
+le pose : « Raccourcir à 76 mm ». C'est la compensation d'épaisseur aux angles, apprise en la
+faisant.
 
 Une version ultérieure devra proposer plusieurs modes de joint :
 
@@ -765,6 +778,9 @@ Créer une petite maison.
 2 × 80 × 60 mm
 ```
 
+Posés sur le sol entre les deux façades, les côtés n'ont que 80 − 2 × 2 = 76 mm de place : le
+snap l'indique (« Trop long de 4 mm ») et propose de les raccourcir (§ 13).
+
 L'utilisateur doit pouvoir :
 
 1. créer le sol ;
@@ -772,7 +788,7 @@ L'utilisateur doit pouvoir :
 3. dupliquer le mur ;
 4. créer un mur latéral ;
 5. le dupliquer ;
-6. assembler les quatre murs sur les bords du sol.
+6. assembler les quatre murs sur les bords du sol, en raccourcissant les côtés à 76 mm.
 
 Le test est réussi si les opérations semblent évidentes.
 

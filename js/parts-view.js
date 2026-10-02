@@ -82,15 +82,17 @@ export function createPartsView(scene, resolution) {
   }
 
   // Une géométrie neuve à chaque raccord : la remplir à nouveau laisserait ses tampons sur la carte graphique
-  // `blocked` : pourquoi la pièce n'y tient pas (« Trop long de 4 mm »), écrit à côté du trait rouge
+  // `blocked` : pourquoi la pièce n'y tient pas (« Trop long de 4 mm »), écrit à côté du trait rouge ;
+  // `fix` : { text, run }, le bouton qui y remédie
   let snapKey = null
-  function showSnap(line, blocked = null) {
+  function showSnap(line, blocked = null, fix = null) {
     snapLine.visible = !!line
     snapLabel.visible = !!(line && blocked)
     if (!line) return
     snapLine.material = blocked ? SNAP.blocked : SNAP.ok
     if (blocked) {
       snapLabel.element.textContent = blocked
+      if (fix) snapLabel.element.append(Object.assign(document.createElement('button'), { type: 'button', textContent: fix.text, onclick: fix.run }))
       snapLabel.position.copy(line[0]).lerp(line[1], 0.5)
     }
     const key = line.flatMap(p => p.toArray()).join()

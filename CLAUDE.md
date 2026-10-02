@@ -37,7 +37,9 @@
   glisser suivant.
 - `js/collision.js` : pièces solides (axes séparateurs sur des prismes convexes, contact toléré à
   0,01 mm). Glisser et flèches s'arrêtent au contact (`sweep`), une rotation ou un snap qui
-  heurterait est refusé, les pièces qui se chevauchent quand même sont entourées de rouge.
+  heurterait est refusé, les pièces qui se chevauchent quand même sont entourées de rouge. Un
+  rectangle « trop long » au snap se raccourcit en un clic sur le raccord rouge
+  (`excessAlong`, `fittedRectangle`).
 - Rotation (`rotatedPose`) : R quart de tour vertical, B bascule vers soi, Maj l'autre sens ; le
   point le plus bas de la pièce ne bouge pas.
 - Flèches de déplacement (TransformControls, plans masqués) sur un repère posé au centre de la

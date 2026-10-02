@@ -1,5 +1,6 @@
 // Géométrie pure des pièces, sans DOM : importe three.core.js directement pour tourner sous Node.
 import { Box3, Matrix4, Quaternion, Ray, Vector3 } from '../lib/three/three.core.js'
+import { rectangle } from './model.js'
 
 const ONE = new Vector3(1, 1, 1)
 const EPS = 1e-6 // mm : les quarts de tour laissent des restes de l'ordre de 1e-14
@@ -125,6 +126,26 @@ export function rotatedPose(part, axis, angle) {
   return {
     position: position.toArray().map(clean),
     quaternion: quaternion.toArray().map(c => (Math.abs(c) < 1e-12 ? 0 : c)),
+  }
+}
+
+// Ajuster en un clic : le rectangle aimanté `snap` (pose, bord posé) qui dépasse de `start` et
+// `end` le long de `axis` (le bord visé, voir excessAlong), raccourci d'autant et posé dans la
+// place qui reste. Le bord posé dit la cote à réduire : pair la largeur, impair la hauteur.
+// Renvoie { points, position, quaternion, length } (length : la cote réduite).
+export function fittedRectangle(part, snap, { start, end }, axis) {
+  const [, , [width, height]] = part.points
+  const alongWidth = snap.movingEdge % 2 === 0
+  const excess = start + end
+  const quaternion = new Quaternion(...snap.quaternion)
+  // Le milieu du bord posé reste au milieu du bord visé, puis la pièce glisse dans la place libre
+  const keep = new Vector3(alongWidth ? excess / 2 : 0, alongWidth ? 0 : excess / 2, 0).applyQuaternion(quaternion)
+  const position = new Vector3(...snap.position).add(keep).addScaledVector(axis, (start - end) / 2)
+  return {
+    points: alongWidth ? rectangle(clean(width - excess), height) : rectangle(width, clean(height - excess)),
+    position: position.toArray().map(clean),
+    quaternion: snap.quaternion,
+    length: clean((alongWidth ? width : height) - excess),
   }
 }
 

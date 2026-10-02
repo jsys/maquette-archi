@@ -2,7 +2,8 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { Vector3 } from '../lib/three/three.core.js'
 import { createDocument, createPart, rectangle } from '../js/model.js'
-import { worldBox } from '../js/geometry.js'
+import { fittedRectangle, worldBox } from '../js/geometry.js'
+import { blockers, excessAlong } from '../js/collision.js'
 import { edgeGap, findSnap, pointToSegment } from '../js/snap.js'
 
 // Scénario du CdC § 29 : sol de 120 × 80 à plat, centré sur l'origine (bords à x = ±60, z = ±40)
@@ -114,4 +115,19 @@ test('pignon (polygone) près du bord gauche : il se dresse sur sa base de 80, f
   const snap = findSnap(gable, [floor], options)
   assert.equal(snap.movingEdge, 0) // la base, seule de longueur 80
   assertBox(boxOf(gable, snap), [-60, -58, 2, 102, -40, 40])
+})
+
+test('ajuster en un clic : le côté de 80 entre les façades devient 76 et se pose entre elles', () => {
+  const standing = (w, position) => Object.assign(part(w, 60, position), { quaternion: [0, 0, 0, 1] })
+  const back = standing(120, [-60, 2, -40]), front = standing(120, [-60, 2, 38]) // z ∈ [-40, -38] et [38, 40]
+  const side = part(80, 60, [63, 0, 30]) // à plat à droite du sol, bord gauche à 3 mm
+  for (const [walls, want, z] of [[[back, front], 76, [-38, 38]], [[back], 78, [-38, 40]]]) {
+    const snap = findSnap(side, [floor, ...walls], options)
+    const posed = { ...side, position: snap.position, quaternion: snap.quaternion }
+    const axis = snap.line[1].clone().sub(snap.line[0]).normalize()
+    const fitted = { ...side, ...fittedRectangle(side, snap, excessAlong(posed, blockers(posed, walls), axis), axis) }
+    assert.equal(fitted.length, want)
+    assertBox(boxOf(fitted, fitted), [58, 60, 2, 62, ...z])
+    assert.equal(blockers(fitted, [floor, ...walls]).length, 0)
+  }
 })

@@ -6,8 +6,8 @@ import { createPartsView } from './parts-view.js'
 import { createPointer } from './pointer.js'
 import { createPanels } from './panels.js'
 import { createDebugView } from './debug-view.js'
-import { createDocument, createPart, duplicatePart } from './model.js'
-import { nudge, placeOnTable, rotatedPose, worldBox } from './geometry.js'
+import { createDocument, createPart, duplicatePart, rectSize } from './model.js'
+import { fittedRectangle, nudge, placeOnTable, rotatedPose, worldBox } from './geometry.js'
 import { findSnap } from './snap.js'
 import { blockers, excessAlong, overlapping, penetration, sweep, underTable } from './collision.js'
 import { createLibrary, download, loadLocal, newPlanId, readFile, saveLocal } from './storage.js'
@@ -54,6 +54,7 @@ function placeHandle() {
 }
 
 function refresh() {
+  dropFit()
   partsView.sync(doc)
   placeHandle()
   colliding = overlapping(doc.parts)
@@ -74,6 +75,7 @@ const redoButton = document.getElementById('retablir')
 let lastRecord = { key: null, time: 0 }
 
 function remember(key = null) {
+  dropFit()
   const now = performance.now()
   const burst = key !== null && key === lastRecord.key && now - lastRecord.time < 1000
   lastRecord = { key, time: now }
@@ -261,13 +263,19 @@ function dragMove(id, target, free) {
   const snapAt = position => findSnap({ ...part, position }, targets, { pxToWorld, viewPoint: view.camera.position, prefer: drag.snap })
   const snap = free ? null : snapAt(target) ?? snapAt(drag.position)
   let blocked = null
+  drag.fit = null
   if (snap) {
     const posed = { ...part, position: snap.position, quaternion: snap.quaternion }
     const hits = blockers(posed, drag.obstacles)
     if (drag.table && underTable(posed)) blocked = 'Sous la table'
     else if (hits.length) {
-      const excess = excessAlong(posed, hits, snap.line[1].clone().sub(snap.line[0]).normalize())
-      blocked = excess === null ? 'Place occupée' : `Trop long de ${fr(excess)} mm`
+      const axis = snap.line[1].clone().sub(snap.line[0]).normalize()
+      const bites = excessAlong(posed, hits, axis)
+      blocked = bites ? `Trop long de ${fr(bites.start + bites.end)} mm` : 'Place occupée'
+      if (bites && rectSize(part.points)) {
+        const fitted = fittedRectangle(part, snap, bites, axis)
+        if (!blockers({ ...part, ...fitted }, drag.obstacles).length) drag.fit = { id, snap, blocked, ...fitted }
+      }
     } else {
       part.position = snap.position
       part.quaternion = snap.quaternion
@@ -276,19 +284,44 @@ function dragMove(id, target, free) {
   drag.snap = blocked ? null : snap
   partsView.move(part)
   placeHandle()
-  partsView.showSnap(snap?.line, blocked)
+  partsView.showSnap(snap?.line, blocked, drag.fit && fitButton(drag.fit))
   if (debugView.enabled) debugView.update(doc, drag.snap)
   view.requestRender()
 }
 
 function dragEnd(id) {
   const part = findPart(id)
-  const { snap } = drag
+  const { snap, fit: offer } = drag
   if (snap) part.attachedTo = { partId: snap.targetId, edge: snap.targetEdge, ownEdge: snap.movingEdge }
   else delete part.attachedTo
   drag = null
   partsView.showSnap(null)
   refresh()
+  if (offer) {
+    fit = offer // le raccord rouge reste, avec son bouton, jusqu'au prochain changement
+    partsView.showSnap(fit.snap.line, fit.blocked, fitButton(fit))
+    view.requestRender()
+  }
+}
+
+// Ajuster en un clic : un rectangle « trop long » au snap se raccourcit de ce qui dépasse et se
+// pose dans la place qui reste (la compensation d'épaisseur aux angles, CdC § 13). Proposé sur le
+// raccord rouge, pendant le glisser puis après le relâché.
+let fit = null // { id, snap, blocked, points, position, quaternion, length }
+const fitButton = ({ length }) => ({ text: `Raccourcir à ${fr(length)} mm`, run: applyFit })
+
+function applyFit() {
+  const { id, snap, points, position, quaternion } = fit
+  remember()
+  const attachedTo = { partId: snap.targetId, edge: snap.targetEdge, ownEdge: snap.movingEdge }
+  Object.assign(findPart(id), { points, position, quaternion, attachedTo })
+  refresh()
+}
+
+function dropFit() {
+  if (!fit) return
+  fit = null
+  partsView.showSnap(null)
 }
 
 // Flèches de déplacement : la pièce suit la flèche saisie, sans traverser les autres ni la table.

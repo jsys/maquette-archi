@@ -100,8 +100,13 @@ button.principal { cursor: pointer; color: #fff; background: var(--texte); borde
 
 /* Snap refusé : la raison, posée sur le raccord */
 .refus {
+  display: flex; align-items: center; gap: .5rem;
   margin-top: -1.6rem; padding: .15rem .45rem; font-size: .8rem; font-weight: 600; white-space: nowrap;
   color: #fff; background: var(--danger); border-radius: 4px;
+}
+.refus button {
+  pointer-events: auto; padding: .1rem .45rem; cursor: pointer; font-weight: 600;
+  color: var(--danger); background: #fff; border: 0; border-radius: 3px;
 }
 
 /* Étiquettes du mode debug, posées sur la vue 3D */

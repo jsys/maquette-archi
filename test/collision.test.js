@@ -58,13 +58,14 @@ test('sweep : s’arrête au contact, longe l’obstacle, ne le traverse jamais'
   assert.ok(near(slide[0], 60) && touching(slide[2], 0))
 })
 
-test('excessAlong : un côté de 80 entre deux façades dépasse de 4 mm ; place prise sinon', () => {
+test('excessAlong : un côté de 80 entre deux façades mord de 2 mm à chaque bout ; place prise sinon', () => {
   const backF = standing(120, 60, [-60, 2, -40]) // z ∈ [-40, -38]
   const frontF = standing(120, 60, [-60, 2, 38]) // z ∈ [38, 40]
   const side = Object.assign(standing(80, 60, [-60, 2, 40]), { quaternion: [0, Math.SQRT1_2, 0, Math.SQRT1_2] })
   const hits = blockers(side, [backF, frontF])
   assert.equal(hits.length, 2)
-  assert.equal(excessAlong(side, hits, new Vector3(0, 0, 1)), 4)
+  assert.deepEqual(excessAlong(side, hits, new Vector3(0, 0, 1)), { start: 2, end: 2 })
+  assert.deepEqual(excessAlong(side, [backF], new Vector3(0, 0, 1)), { start: 2, end: 0 })
   const middle = Object.assign(standing(2, 60, [-61, 2, 1]), { quaternion: [0, 0, 0, 1] }) // en plein milieu
   assert.equal(excessAlong(side, blockers(side, [middle]), new Vector3(0, 0, 1)), null)
 })
