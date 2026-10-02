@@ -19,6 +19,10 @@ export function createHistory(limit = 200) {
       past.push(current)
       return future.pop()
     },
+    // Changement de maquette : l'historique de l'ancienne ne vaut plus
+    clear() {
+      past.length = future.length = 0
+    },
     get canUndo() { return past.length > 0 },
     get canRedo() { return future.length > 0 },
   }

@@ -10,7 +10,7 @@ import { createDocument, createPart, duplicatePart } from './model.js'
 import { nudge, placeOnTable, rotatedPose, worldBox } from './geometry.js'
 import { findSnap } from './snap.js'
 import { blockers, excessAlong, overlapping, penetration, sweep, underTable } from './collision.js'
-import { download, loadLocal, readFile, saveLocal } from './storage.js'
+import { createLibrary, download, loadLocal, newPlanId, readFile, saveLocal } from './storage.js'
 import { createHistory } from './history.js'
 
 const container = document.getElementById('vue3d')
@@ -104,11 +104,22 @@ function scheduleSave() {
   clearTimeout(saveTimer)
   saveTimer = setTimeout(save, 300)
 }
+// La maquette en cours est toujours gardée (elle revient au rechargement) ; nommée, elle est en
+// plus tenue à jour dans la bibliothèque du navigateur, que liste « Ouvrir… ».
+const library = createLibrary(localStorage)
 function save() {
   clearTimeout(saveTimer)
   saveTimer = 0
-  const ok = saveLocal(doc)
-  showStatus(ok ? 'Enregistré dans ce navigateur' : 'Enregistrement impossible dans ce navigateur', !ok)
+  let ok = saveLocal(doc)
+  if (ok && doc.id) {
+    try {
+      library.save(doc)
+    } catch {
+      ok = false
+    }
+  }
+  const done = doc.id ? 'Enregistrée' : 'Gardée dans ce navigateur'
+  showStatus(ok ? done : 'Enregistrement impossible dans ce navigateur', !ok)
 }
 function showStatus(text, isError = false) {
   status.textContent = text
@@ -117,11 +128,26 @@ function showStatus(text, isError = false) {
 addEventListener('pagehide', () => { if (saveTimer) save() })
 
 // Nouveau document ou fichier ouvert : on garde le même objet, auquel tout le reste est relié
+// Nouveau document ou maquette ouverte : on garde le même objet, auquel tout le reste est relié.
+// L'historique d'annulation de l'ancienne ne vaut plus.
 function replaceDocument(next) {
-  remember()
   doc.parts = next.parts
+  if (next.id) Object.assign(doc, { id: next.id, name: next.name })
+  else {
+    delete doc.id
+    delete doc.name
+  }
+  undoHistory.clear()
+  lastRecord = { key: null, time: 0 }
+  updateUndoButtons()
   selectedId = hoveredId = null
+  showName()
   refresh()
+}
+const nameLabel = document.getElementById('nom-maquette')
+function showName() {
+  nameLabel.textContent = doc.name ?? 'Maquette sans nom'
+  nameLabel.classList.toggle('sans-nom', !doc.id)
 }
 
 const actions = {
@@ -323,8 +349,12 @@ function screenAway() {
 // champ ou le dessin 2D, le clavier leur appartient.
 const help = document.getElementById('raccourcis')
 addEventListener('keydown', e => {
-  if (e.target.closest?.('input, select, textarea, .editeur, dialog')) return
   const command = e.metaKey || e.ctrlKey
+  if (command && e.key.toLowerCase() === 's') {
+    e.preventDefault()
+    return openSave()
+  }
+  if (e.target.closest?.('input, select, textarea, .editeur, dialog')) return
   if (command && e.key.toLowerCase() === 'z') {
     e.preventDefault()
     return travel(e.shiftKey ? 'redo' : 'undo')
@@ -368,20 +398,92 @@ gridSelect.addEventListener('change', () => {
   gridSelect.blur() // rend le clavier à la scène (Espace)
 })
 
-// Fichiers (CdC § 17). Remplacer une maquette non vide se confirme : l'enregistrement
-// automatique écraserait l'ancienne.
-const replaceOk = () => !doc.parts.length || confirm('Remplacer la maquette en cours ? Exportez-la d’abord pour la garder.')
-const fileInput = document.getElementById('fichier')
+// Fichiers (CdC § 17). Une maquette nommée est déjà enregistrée ; une maquette sans nom serait
+// perdue en la remplaçant : on le demande.
+const replaceOk = () => doc.id || !doc.parts.length || confirm('La maquette en cours n’a pas de nom : elle sera remplacée et perdue. Continuer ?')
 document.getElementById('nouveau').addEventListener('click', () => {
   if (replaceOk()) replaceDocument(createDocument())
 })
-document.getElementById('ouvrir').addEventListener('click', () => fileInput.click())
+
+// Enregistrer… : nommer la maquette (la renommer si elle l'est déjà)
+const saveDialog = document.getElementById('enregistrer-sous')
+const nameInput = saveDialog.querySelector('input')
+function openSave() {
+  nameInput.value = doc.name ?? ''
+  saveDialog.showModal()
+  nameInput.select()
+}
+document.getElementById('enregistrer').addEventListener('click', openSave)
+saveDialog.querySelector('form').addEventListener('submit', e => {
+  if (e.submitter?.value !== 'ok') return
+  const name = nameInput.value.trim()
+  if (!name) return e.preventDefault()
+  doc.id ??= newPlanId()
+  doc.name = name
+  showName()
+  save()
+})
+
+// Ouvrir… : les maquettes enregistrées dans ce navigateur, plus l'import d'un fichier
+const libraryDialog = document.getElementById('bibliotheque')
+const planList = libraryDialog.querySelector('.plans')
+const dateFr = iso => new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })
+function renderLibrary() {
+  const plans = library.list()
+  if (!plans.length) {
+    planList.innerHTML = '<li class="vide">Aucune maquette enregistrée : « Enregistrer… » nomme la maquette en cours.</li>'
+    return
+  }
+  planList.replaceChildren(...plans.map(plan => {
+    const item = document.createElement('li')
+    item.dataset.id = plan.id
+    item.classList.toggle('courante', plan.id === doc.id)
+    item.innerHTML = '<span class="titre-plan"><strong></strong><small></small></span>'
+      + '<button type="button" class="secondaire" data-action="ouvrir-plan">Ouvrir</button>'
+      + '<button type="button" class="secondaire" data-action="supprimer-plan">Supprimer</button>'
+    item.querySelector('strong').textContent = plan.name
+    item.querySelector('small').textContent = `${dateFr(plan.savedAt)} · ${plan.count} pièce${plan.count > 1 ? 's' : ''}`
+    return item
+  }))
+}
+document.getElementById('ouvrir').addEventListener('click', () => {
+  renderLibrary()
+  libraryDialog.showModal()
+})
+planList.addEventListener('click', e => {
+  const item = e.target.closest('li[data-id]')
+  const action = e.target.closest('button')?.dataset.action
+  if (!item || !action) return
+  const { id } = item.dataset
+  const name = item.querySelector('strong').textContent
+  if (action === 'ouvrir-plan') {
+    if (id !== doc.id) {
+      if (!replaceOk()) return
+      if (saveTimer) save() // ne rien perdre de la maquette qu'on quitte
+      try {
+        replaceDocument(library.load(id))
+      } catch (err) {
+        return showStatus(`« ${name} » : ${err.message}`, true)
+      }
+    }
+    libraryDialog.close()
+  } else if (confirm(`Supprimer « ${name} » de ce navigateur ? C’est définitif.`)) {
+    library.remove(id)
+    if (id === doc.id) replaceDocument({ parts: doc.parts }) // la maquette reste à l'écran, sans nom
+    renderLibrary()
+  }
+})
+
+// Importer un fichier JSON : il arrive sans nom, à enregistrer sous le sien
+const fileInput = document.getElementById('fichier')
+libraryDialog.querySelector('[data-action="importer"]').addEventListener('click', () => fileInput.click())
 fileInput.addEventListener('change', async () => {
   const [file] = fileInput.files
   fileInput.value = '' // rouvrir le même fichier redéclenche l'événement
   if (!file || !replaceOk()) return
   try {
-    replaceDocument(await readFile(file))
+    replaceDocument({ parts: (await readFile(file)).parts })
+    libraryDialog.close()
   } catch (e) {
     showStatus(`${file.name} : ${e.message}`, true)
   }
@@ -398,5 +500,6 @@ document.getElementById('debug').addEventListener('change', e => {
   e.target.blur()
 })
 
+showName()
 window.maquette = { ...view, doc, partsView, debugView, actions } // accès depuis la console, pour le débogage
 refresh()

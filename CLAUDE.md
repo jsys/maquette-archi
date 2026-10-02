@@ -43,8 +43,11 @@
 - `js/debug-view.js` : mode debug (case « Debug » de l'en-tête), bords et sommets par-dessus tout.
 - `js/history.js` : annuler et rétablir par instantanés du document ; `main.js` photographie juste
   avant chaque changement (`remember`), une rafale de même nature ne fait qu'une étape.
-- `js/storage.js` : JSON du document (CdC § 17), enregistré dans le navigateur à chaque changement
-  (clé `maquette.document`), exporté et importé ; un fichier lu est contrôlé pièce par pièce.
+- `js/storage.js` : JSON du document (CdC § 17). La maquette en cours est gardée à chaque
+  changement (clé `maquette.document`) ; nommée (« Enregistrer… », `id` + `name`), elle est aussi
+  tenue à jour dans la bibliothèque du navigateur (`maquette.plans` + `maquette.plan.<id>`), que
+  liste « Ouvrir… ». Export et import en fichier ; un fichier lu est contrôlé pièce par pièce.
+  Les comptes viendront plus tard : la bibliothèque est la seule partie à remplacer.
 - `js/editor2d.js` : dessin SVG de la nouvelle plaque (rectangle coté ou polygone), Y vers le haut ;
   le contour est contrôlé (`contourProblem`) et rangé (`normalizeContour`) avant l'extrusion.
 - `js/main.js` tient l'état (document, sélection) et les actions ; `js/panels.js` (HTML) et

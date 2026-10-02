@@ -27,11 +27,13 @@
       </select>
     </label>
     <div class="fichier">
+      <span id="nom-maquette" class="nom-maquette"></span>
       <span id="etat" class="etat" role="status"></span>
       <button type="button" class="secondaire icone" id="annuler" title="Annuler (⌘Z ou Ctrl+Z)" aria-label="Annuler" disabled>↶</button>
       <button type="button" class="secondaire icone" id="retablir" title="Rétablir (⇧⌘Z ou Ctrl+Maj+Z)" aria-label="Rétablir" disabled>↷</button>
       <button type="button" class="secondaire" id="nouveau">Nouveau</button>
-      <button type="button" class="secondaire" id="ouvrir">Ouvrir…</button>
+      <button type="button" class="secondaire" id="enregistrer" title="Nommer la maquette (⌘S ou Ctrl+S)">Enregistrer…</button>
+      <button type="button" class="secondaire" id="ouvrir" title="Mes maquettes enregistrées dans ce navigateur">Ouvrir…</button>
       <button type="button" class="secondaire" id="exporter">Exporter</button>
       <input type="file" id="fichier" accept=".json,application/json" hidden>
     </div>
@@ -39,7 +41,31 @@
     <label class="debug"><input type="checkbox" id="debug"> Debug</label>
   </header>
 
-  <dialog id="raccourcis">
+  <dialog id="enregistrer-sous" class="fiche">
+    <form method="dialog">
+      <h2>Enregistrer la maquette</h2>
+      <label>Nom <input type="text" name="nom" required maxlength="80" autocomplete="off" spellcheck="false"></label>
+      <p class="aide">Dans ce navigateur. Ensuite, chaque changement y est enregistré tout seul.</p>
+      <div class="boutons">
+        <button value="annuler" class="secondaire" formnovalidate>Annuler</button>
+        <button value="ok" class="principal">Enregistrer</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="bibliotheque" class="fiche">
+    <form method="dialog">
+      <h2>Mes maquettes</h2>
+      <p class="aide">Enregistrées dans ce navigateur, les plus récentes d'abord.</p>
+      <ul class="plans"></ul>
+      <div class="boutons">
+        <button type="button" class="secondaire" data-action="importer">Importer un fichier JSON…</button>
+        <button class="secondaire">Fermer</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="raccourcis" class="fiche">
     <form method="dialog">
       <h2>Raccourcis</h2>
       <h3>Vue 3D</h3>
@@ -61,6 +87,7 @@
         <dt>Suppr ou ⌫</dt><dd>supprimer</dd>
         <dt>Échap</dt><dd>désélectionner</dd>
         <dt>⌘Z ou Ctrl+Z</dt><dd>annuler, avec Maj : rétablir</dd>
+        <dt>⌘S ou Ctrl+S</dt><dd>enregistrer sous un nom</dd>
       </dl>
       <h3>Dessin d'un polygone</h3>
       <dl>

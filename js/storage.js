@@ -6,8 +6,41 @@ import { contourProblem } from './geometry.js'
 
 const KEY = 'maquette.document'
 
+// `id` et `name` : seulement pour une maquette enregistrée sous un nom
 export function serialize(doc) {
-  return JSON.stringify({ version: 1, units: 'mm', parts: doc.parts }, null, 2)
+  const named = doc.id ? { id: doc.id, name: doc.name } : {}
+  return JSON.stringify({ version: 1, units: 'mm', ...named, parts: doc.parts }, null, 2)
+}
+
+// Bibliothèque des maquettes nommées, dans le stockage du navigateur (`store` : localStorage, ou
+// un équivalent pour les tests). Un index léger pour la liste, une clé par maquette.
+const INDEX = 'maquette.plans'
+const planKey = id => `maquette.plan.${id}`
+export const newPlanId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+
+export function createLibrary(store) {
+  const read = () => {
+    try {
+      return JSON.parse(store.getItem(INDEX)) ?? []
+    } catch {
+      return []
+    }
+  }
+  const write = list => store.setItem(INDEX, JSON.stringify(list))
+  return {
+    // Les plus récentes d'abord
+    list: () => read().sort((a, b) => b.savedAt.localeCompare(a.savedAt)),
+    save(doc) {
+      store.setItem(planKey(doc.id), serialize(doc))
+      const entry = { id: doc.id, name: doc.name, savedAt: new Date().toISOString(), count: doc.parts.length }
+      write([...read().filter(e => e.id !== doc.id), entry])
+    },
+    load: id => parseDocument(store.getItem(planKey(id))),
+    remove(id) {
+      store.removeItem(planKey(id))
+      write(read().filter(e => e.id !== id))
+    },
+  }
 }
 
 // Document lu depuis un texte JSON, ou une erreur au message lisible.
@@ -21,6 +54,7 @@ export function parseDocument(text) {
   if (!Array.isArray(data?.parts)) throw new Error('Ce fichier n’est pas une maquette.')
   if (data.version !== 1) throw new Error(`Version de fichier inconnue (${data.version}).`)
   const doc = createDocument()
+  if (typeof data.id === 'string' && typeof data.name === 'string') Object.assign(doc, { id: data.id, name: data.name })
   const ids = new Set()
   data.parts.forEach((part, i) => doc.parts.push(checkPart(part, i + 1, ids)))
   return doc
