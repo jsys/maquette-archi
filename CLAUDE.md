@@ -29,9 +29,12 @@
   mm, épaisseur, matériau, position et quaternion.
 - `js/parts-view.js` reconstruit les maillages depuis le modèle (`sync`), jamais l'inverse.
 - `js/geometry.js` : calculs purs (boîtes, placement, bords, glisser), testés dans `test/`.
-  Un bord = un segment du contour, donc une tranche du carton (`partEdges`).
+  Un bord = un segment du contour, donc une tranche du carton (`partEdges`). Une pièce neuve ou
+  copiée se pose à la place libre la plus proche que rien ne cache à la caméra (`placeOnTable`).
 - `js/snap.js` : snap arête → arête, pur et testé ; ses règles sont écrites en tête du fichier.
-  Au relâché, la pièce retient le bord où elle s'appuie (`attachedTo`), préféré au glisser suivant.
+  Le glisser le cherche là où la souris amène la pièce, au-delà des obstacles, puis là où elle
+  s'est arrêtée. Au relâché, la pièce retient le bord où elle s'appuie (`attachedTo`), préféré au
+  glisser suivant.
 - `js/collision.js` : pièces solides (axes séparateurs sur des prismes convexes, contact toléré à
   0,01 mm). Glisser et flèches s'arrêtent au contact (`sweep`), une rotation ou un snap qui
   heurterait est refusé, les pièces qui se chevauchent quand même sont entourées de rouge.

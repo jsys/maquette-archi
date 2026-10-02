@@ -62,6 +62,17 @@ test('trop loin, ou proche seulement à l’écran mais pas dans la scène : pas
   assert.equal(findSnap(high, [floor], options), null)
 })
 
+test('mur à plat glissé à travers le sol : rien tant qu’il le recouvre, le bord du fond une fois passé', () => {
+  // Même largeur que le sol : ses bords latéraux se confondraient avec ceux du sol
+  assert.equal(findSnap(part(120, 60, [-60, 0, 18]), [floor], options), null) // z ∈ [-42, 18]
+  const beyond = part(120, 60, [-60, 0, -41]) // z ∈ [-101, -41], à 1 mm du bord du fond
+  const snap = findSnap(beyond, [floor], options)
+  assert.equal(snap.targetEdge, 2)
+  assertBox(boxOf(beyond, snap), [-60, 60, 2, 62, -40, -38])
+  const over = part(120, 60, [-60, 0, 98]) // z ∈ [38, 98] : dépasse de 2 mm sur le sol
+  assert.equal(findSnap(over, [floor], options).targetEdge, 0)
+})
+
 test('pièce amenée par-dessous un sol surélevé : elle se pose sous le sol', () => {
   const raised = part(120, 80, [-60, 100, 40]) // sol à y ∈ [100, 102]
   const wall = part(120, 60, [-60, 0, 103])

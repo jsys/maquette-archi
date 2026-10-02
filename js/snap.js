@@ -9,17 +9,23 @@
 // - bord de la pièce déplacée : la longueur la plus proche de celle du bord visé, puis le plus proche ;
 // - pose : sa tranche se pose sur la face de la cible, centrée sur le bord visé, sa face extérieure
 //   affleurant la tranche de la cible (le mur posé au bord du sol), à 90° ;
-// - côté : celui d'où l'on amène la pièce ; dans le plan de la cible, celui de la caméra.
+// - côté : celui d'où l'on amène la pièce ; dans le plan de la cible, celui de la caméra ;
+// - pièce traversée : ne compte pas si elle contient le centre de la pièce déplacée. La pose
+//   essayée peut être celle où la souris amène la pièce, au-delà des obstacles (main.js) : un mur
+//   à plat glissé sur le sol ne s'aimante pas aux bords qu'il recouvre, mais un léger dépassement
+//   du bord visé reste permis.
 import { Matrix4, Quaternion, Vector3 } from '../lib/three/three.core.js'
-import { clean, partEdges, partMatrix, signedArea } from './geometry.js'
+import { clean, containsPoint, partEdges, partMatrix, signedArea, worldBox } from './geometry.js'
 
 // Pose aimantée de `moving` contre l'une des `targets`, ou null. `pxToWorld(point)` : taille d'un
 // pixel écran à ce point de la scène, en mm. `viewPoint` : position de la caméra. `prefer` :
 // { targetId, targetEdge } du snap précédent.
 export function findSnap(moving, targets, { pxToWorld, viewPoint, radiusPx = 12, prefer = null }) {
   const movingEdges = partEdges(moving)
+  const center = worldBox(moving).getCenter(new Vector3())
   let best = null
   for (const target of targets) {
+    if (containsPoint(target, center)) continue
     for (const et of partEdges(target)) {
       const tolerance = radiusPx * pxToWorld(et.center)
       const weight = prefer?.targetId === target.id && prefer.targetEdge === et.index ? 0.5 : 1

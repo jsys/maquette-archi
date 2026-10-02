@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { Ray, Vector3 } from '../lib/three/three.core.js'
 import { createDocument, createPart, rectangle } from '../js/model.js'
-import { dragOnPlane, nudge, placeOnTable, worldBox } from '../js/geometry.js'
+import { containsPoint, dragOnPlane, nudge, placeOnTable, worldBox } from '../js/geometry.js'
 
 const near = (a, b) => Math.abs(a - b) < 1e-9
 const plate = (doc, w, h, t = 2) => createPart(doc, { points: rectangle(w, h), thickness: t, materialId: 'carton-gris' })
@@ -12,6 +12,16 @@ test('worldBox : plaque à plat à l’origine, contour X → X et Y → -Z, ép
   for (const [got, want] of [[b.min.x, 0], [b.max.x, 120], [b.min.y, 0], [b.max.y, 2], [b.min.z, -80], [b.max.z, 0]]) {
     assert.ok(near(got, want), `${got} ≠ ${want}`)
   }
+})
+
+test('containsPoint : dans le contour et entre les deux faces', () => {
+  const floor = Object.assign(plate(createDocument(), 120, 80), { position: [-60, 0, 40] })
+  const gable = Object.assign(createPart(createDocument(), { points: [[0, 0], [80, 0], [80, 60], [40, 100], [0, 60]], thickness: 2, materialId: 'carton-gris' }), {
+    position: [0, 0, 0], quaternion: [0, 0, 0, 1], // debout dans le plan XY
+  })
+  assert.ok(containsPoint(floor, new Vector3(0, 1, 0)) && containsPoint(floor, new Vector3(59, 1, -39)))
+  assert.ok(!containsPoint(floor, new Vector3(0, 3, 0)) && !containsPoint(floor, new Vector3(61, 1, 0)))
+  assert.ok(containsPoint(gable, new Vector3(40, 90, 1)) && !containsPoint(gable, new Vector3(10, 90, 1)))
 })
 
 test('placeOnTable : la première pièce est centrée sur le point visé et posée sur la table', () => {
@@ -58,6 +68,18 @@ test('placeOnTable : une pièce debout compte par son emprise au sol', () => {
   const w = worldBox(wall)
   assert.ok(b.min.z >= w.max.z + 10 - 1e-9 || b.max.z <= w.min.z - 10 + 1e-9 ||
     b.min.x >= w.max.x + 10 - 1e-9 || b.max.x <= w.min.x - 10 + 1e-9)
+})
+
+test('placeOnTable : avec `eye`, pas derrière un mur qui la cacherait à la caméra', () => {
+  const doc = createDocument()
+  doc.parts.push(placeOnTable(plate(doc, 120, 80), doc.parts, { x: 0, z: 0 }))
+  const wall = plate(doc, 120, 60)
+  Object.assign(wall, { quaternion: [0, 0, 0, 1], position: [-60, 2, -40] }) // debout au fond du sol
+  doc.parts.push(wall)
+  const behind = worldBox(placeOnTable(plate(doc, 120, 60), doc.parts, { x: 0, z: 0 }))
+  assert.ok(behind.max.z <= -40 - 10 + 1e-9) // sans `eye` : derrière le mur, à égalité de distance
+  const seen = worldBox(placeOnTable(plate(doc, 120, 60), doc.parts, { x: 0, z: 0 }, { eye: new Vector3(0, 200, 300) }))
+  assert.ok(seen.min.z >= 40 + 10 - 1e-9)
 })
 
 test('dragOnPlane : le point saisi suit le rayon sur son plan horizontal, au mm près', () => {

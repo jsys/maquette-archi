@@ -55,9 +55,10 @@ input[type="number"], select {
 input:disabled { color: var(--doux); background: var(--fond); }
 header label { display: flex; align-items: center; gap: .4rem; }
 header select { width: auto; }
-.fichier { display: flex; align-items: center; gap: .4rem; margin-left: auto; }
+.fichier { display: flex; align-items: center; gap: .4rem; margin-left: auto; min-width: 0; }
 .fichier button { padding: .25rem .6rem; }
-.etat { margin-right: .4rem; color: var(--doux); font-size: .8rem; }
+/* Écran étroit : l'état et le nom se raccourcissent plutôt que de pousser l'aide hors de l'écran */
+.etat { min-width: 0; overflow: hidden; text-overflow: ellipsis; margin-right: .4rem; color: var(--doux); font-size: .8rem; }
 .etat.erreur-etat { color: var(--danger); }
 button.icone { min-width: 2rem; padding: .2rem .45rem; font-size: 1rem; line-height: 1.2; }
 button:disabled { opacity: .35; cursor: default; }
@@ -86,7 +87,7 @@ button.principal { cursor: pointer; color: #fff; background: var(--texte); borde
 .titre-plan small { color: var(--doux); }
 .plans li.courante strong::after { content: " (ouverte)"; color: var(--doux); font-weight: normal; }
 .plans li.vide { color: var(--doux); }
-.nom-maquette { max-width: 16rem; margin-right: .6rem; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.nom-maquette { min-width: 0; max-width: 16rem; margin-right: .6rem; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
 .version { color: var(--doux); font-size: .75rem; }
 #enregistrer-sous:not(.nommee) .nommee, #enregistrer-sous.nommee .nouvelle { display: none; }
 .nom-maquette.sans-nom { color: var(--doux); font-weight: normal; font-style: italic; }

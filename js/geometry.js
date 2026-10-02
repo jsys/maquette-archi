@@ -1,5 +1,5 @@
 // Géométrie pure des pièces, sans DOM : importe three.core.js directement pour tourner sous Node.
-import { Box3, Matrix4, Quaternion, Vector3 } from '../lib/three/three.core.js'
+import { Box3, Matrix4, Quaternion, Ray, Vector3 } from '../lib/three/three.core.js'
 
 const ONE = new Vector3(1, 1, 1)
 const EPS = 1e-6 // mm : les quarts de tour laissent des restes de l'ordre de 1e-14
@@ -99,6 +99,18 @@ export function worldBox(part, target = new Box3()) {
   return target
 }
 
+// Le point de la scène est-il dans la pièce (dans son contour, entre ses deux faces) ?
+export function containsPoint(part, point) {
+  const p = point.clone().applyMatrix4(partMatrix(part).invert())
+  if (p.z < 0 || p.z > part.thickness) return false
+  let inside = false
+  part.points.forEach(([x0, y0], i) => {
+    const [x1, y1] = part.points[(i + 1) % part.points.length]
+    if ((y0 > p.y) !== (y1 > p.y) && p.x < x0 + (p.y - y0) * (x1 - x0) / (y1 - y0)) inside = !inside
+  })
+  return inside
+}
+
 // Pose après une rotation d'`angle` autour de l'axe `axis` ([x, y, z], unitaire) passant par le
 // centre de la pièce. Son point le plus bas ne bouge pas : une plaque posée sur la table s'y
 // relève au lieu de passer dessous.
@@ -118,7 +130,10 @@ export function rotatedPose(part, axis, angle) {
 
 // Pose la pièce sur la table (Y = 0), dans la zone libre la plus proche de `center` (le point de
 // la table que regarde la caméra), à `margin` mm au moins de l'emprise au sol des autres pièces.
-export function placeOnTable(part, others, center, { margin = 10, step = 10, maxRadius = 2000 } = {}) {
+// `eye` : position de la caméra ; la pièce se pose là où aucune autre ne la cache, même en partie
+// (le centre et les coins de sa boîte vus de la caméra), pas derrière un mur. Faute de place
+// visible, la première place libre.
+export function placeOnTable(part, others, center, { eye = null, margin = 10, step = 10, maxRadius = 2000 } = {}) {
   part.position = [0, 0, 0]
   const box = worldBox(part)
   const size = box.getSize(new Vector3())
@@ -127,13 +142,24 @@ export function placeOnTable(part, others, center, { margin = 10, step = 10, max
   const isFree = (minX, minZ) => occupied.every(o =>
     o.max.x + margin <= minX + EPS || o.min.x - margin >= minX + size.x - EPS ||
     o.max.z + margin <= minZ + EPS || o.min.z - margin >= minZ + size.z - EPS)
+  const hit = new Vector3()
+  const corners = [0, 1].flatMap(i => [0, 1].flatMap(j => [0, 1].map(k => [i, j, k])))
+  const hidden = (minX, minZ) => [[.5, .5, .5], ...corners].some(([i, j, k]) => {
+    const from = new Vector3(minX + i * size.x, j * size.y, minZ + k * size.z)
+    const ray = new Ray(from, eye.clone().sub(from).normalize())
+    return occupied.some(o => ray.intersectBox(o, hit) && hit.distanceTo(from) < eye.distanceTo(from))
+  })
 
+  let free = null
   for (let r = 0; r <= maxRadius; r += step) {
     for (const [dx, dz] of ring(r, step)) {
       const minX = center.x + dx - size.x / 2, minZ = center.z + dz - size.z / 2
-      if (isFree(minX, minZ)) return at(minX, minZ), part
+      if (!isFree(minX, minZ)) continue
+      if (!eye || !hidden(minX, minZ)) return at(minX, minZ), part
+      free ??= [minX, minZ]
     }
   }
+  if (free) return at(...free), part
   return at(center.x - size.x / 2, center.z - size.z / 2), part // table pleine : au centre
 }
 

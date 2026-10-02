@@ -155,7 +155,7 @@ const actions = {
   create(spec) {
     remember()
     const part = createPart(doc, spec)
-    placeOnTable(part, doc.parts, view.controls.target)
+    placeOnTable(part, doc.parts, view.controls.target, { eye: view.camera.position })
     doc.parts.push(part)
     actions.select(part.id)
   },
@@ -168,13 +168,13 @@ const actions = {
     Object.assign(findPart(id), changes)
     refresh()
   },
-  // La copie se pose dans la zone libre la plus proche de l'original (CdC § 15)
+  // La copie se pose dans la zone libre et visible la plus proche de l'original (CdC § 15)
   duplicate(id) {
     remember()
     const part = findPart(id)
     const box = worldBox(part)
     const copy = duplicatePart(doc, part)
-    placeOnTable(copy, doc.parts, { x: (box.min.x + box.max.x) / 2, z: (box.min.z + box.max.z) / 2 })
+    placeOnTable(copy, doc.parts, { x: (box.min.x + box.max.x) / 2, z: (box.min.z + box.max.z) / 2 }, { eye: view.camera.position })
     doc.parts.push(copy)
     actions.select(copy.id)
   },
@@ -229,7 +229,10 @@ function moveTo(id, position) {
 // Glisser avec snap (CdC § 11) : la pose libre suit la souris avec l'orientation du départ, sans
 // traverser les autres pièces (elle s'arrête au contact et longe l'obstacle). Le snap la remplace
 // s'il trouve un bord et que la pièce y tient ; sinon le raccord s'affiche en rouge avec la
-// raison. Au relâché, la pièce retient le bord où elle s'appuie (`attachedTo`), préféré ensuite.
+// raison. Il se cherche d'abord là où la souris amène la pièce, même au-delà d'un obstacle (un
+// mur atteint le bord d'en face du sol sans faire le tour de la maquette), puis là où la pièce
+// s'est arrêtée (poussée contre un bord). Au relâché, la pièce retient le bord où elle s'appuie
+// (`attachedTo`), préféré ensuite.
 let drag = null // { quaternion, position: dernière pose libre, obstacles, snap }
 
 // Taille d'un pixel écran au point donné de la scène, en mm
@@ -255,7 +258,8 @@ function dragMove(id, target, free) {
   drag.position = sweep({ ...part, position: drag.position }, drag.position, target, drag.obstacles, { table: drag.table })
   part.position = drag.position
   const targets = doc.parts.filter(p => p !== part && !p.hidden)
-  const snap = free ? null : findSnap(part, targets, { pxToWorld, viewPoint: view.camera.position, prefer: drag.snap })
+  const snapAt = position => findSnap({ ...part, position }, targets, { pxToWorld, viewPoint: view.camera.position, prefer: drag.snap })
+  const snap = free ? null : snapAt(target) ?? snapAt(drag.position)
   let blocked = null
   if (snap) {
     const posed = { ...part, position: snap.position, quaternion: snap.quaternion }
