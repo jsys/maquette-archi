@@ -107,12 +107,17 @@ export function saveLocal(doc) {
   }
 }
 
-// Fichier `maquette-AAAA-MM-JJ.json`, à la date locale (toISOString donnerait celle de Greenwich)
-export function download(doc) {
-  const d = new Date()
+// Fichier `<nom>-AAAA-MM-JJ.json` (nom sans accents ni espaces, `maquette` à défaut), à la date
+// locale (toISOString donnerait celle de Greenwich)
+export function fileName(doc, d = new Date()) {
   const day = [d.getFullYear(), d.getMonth() + 1, d.getDate()].map(n => String(n).padStart(2, '0')).join('-')
+  const slug = (doc.name ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase()
+  return `${slug || 'maquette'}-${day}.json`
+}
+
+export function download(doc) {
   const url = URL.createObjectURL(new Blob([serialize(doc)], { type: 'application/json' }))
-  const link = Object.assign(document.createElement('a'), { href: url, download: `maquette-${day}.json` })
+  const link = Object.assign(document.createElement('a'), { href: url, download: fileName(doc) })
   link.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }

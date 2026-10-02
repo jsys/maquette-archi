@@ -87,6 +87,8 @@ button.principal { cursor: pointer; color: #fff; background: var(--texte); borde
 .plans li.courante strong::after { content: " (ouverte)"; color: var(--doux); font-weight: normal; }
 .plans li.vide { color: var(--doux); }
 .nom-maquette { max-width: 16rem; margin-right: .6rem; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.version { color: var(--doux); font-size: .75rem; }
+#enregistrer-sous:not(.nommee) .nommee, #enregistrer-sous.nommee .nouvelle { display: none; }
 .nom-maquette.sans-nom { color: var(--doux); font-weight: normal; font-style: italic; }
 #raccourcis form { gap: .4rem; }
 #raccourcis h3 { margin: .6rem 0 0; font-size: .85rem; color: var(--doux); }

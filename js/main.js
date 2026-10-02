@@ -11,6 +11,7 @@ import { nudge, placeOnTable, rotatedPose, worldBox } from './geometry.js'
 import { findSnap } from './snap.js'
 import { blockers, excessAlong, overlapping, penetration, sweep, underTable } from './collision.js'
 import { createLibrary, download, loadLocal, newPlanId, readFile, saveLocal } from './storage.js'
+import { VERSION } from './version.js'
 import { createHistory } from './history.js'
 
 const container = document.getElementById('vue3d')
@@ -405,20 +406,24 @@ document.getElementById('nouveau').addEventListener('click', () => {
   if (replaceOk()) replaceDocument(createDocument())
 })
 
-// Enregistrer… : nommer la maquette (la renommer si elle l'est déjà)
+// Enregistrer… : nommer la maquette. Déjà nommée, un autre nom en enregistre une copie (l'original
+// reste dans la bibliothèque tel qu'enregistré) ; « Renommer » change le nom sans copier.
 const saveDialog = document.getElementById('enregistrer-sous')
 const nameInput = saveDialog.querySelector('input')
 function openSave() {
   nameInput.value = doc.name ?? ''
+  saveDialog.classList.toggle('nommee', !!doc.id)
   saveDialog.showModal()
   nameInput.select()
 }
 document.getElementById('enregistrer').addEventListener('click', openSave)
 saveDialog.querySelector('form').addEventListener('submit', e => {
-  if (e.submitter?.value !== 'ok') return
+  const choice = e.submitter?.value
+  if (choice !== 'ok' && choice !== 'renommer') return
   const name = nameInput.value.trim()
   if (!name) return e.preventDefault()
-  doc.id ??= newPlanId()
+  if (saveTimer) save() // l'original garde ses derniers changements
+  if (!doc.id || (choice === 'ok' && name !== doc.name)) doc.id = newPlanId()
   doc.name = name
   showName()
   save()
@@ -440,6 +445,7 @@ function renderLibrary() {
     item.classList.toggle('courante', plan.id === doc.id)
     item.innerHTML = '<span class="titre-plan"><strong></strong><small></small></span>'
       + '<button type="button" class="secondaire" data-action="ouvrir-plan">Ouvrir</button>'
+      + '<button type="button" class="secondaire" data-action="exporter-plan" title="Télécharger en fichier JSON">Exporter</button>'
       + '<button type="button" class="secondaire" data-action="supprimer-plan">Supprimer</button>'
     item.querySelector('strong').textContent = plan.name
     item.querySelector('small').textContent = `${dateFr(plan.savedAt)} · ${plan.count} pièce${plan.count > 1 ? 's' : ''}`
@@ -456,6 +462,10 @@ planList.addEventListener('click', e => {
   if (!item || !action) return
   const { id } = item.dataset
   const name = item.querySelector('strong').textContent
+  if (action === 'exporter-plan') {
+    if (id === doc.id && saveTimer) save()
+    return download(library.load(id))
+  }
   if (action === 'ouvrir-plan') {
     if (id !== doc.id) {
       if (!replaceOk()) return
@@ -488,7 +498,6 @@ fileInput.addEventListener('change', async () => {
     showStatus(`${file.name} : ${e.message}`, true)
   }
 })
-document.getElementById('exporter').addEventListener('click', () => download(doc))
 undoButton.addEventListener('click', () => travel('undo'))
 redoButton.addEventListener('click', () => travel('redo'))
 document.getElementById('aide').addEventListener('click', () => help.showModal())
@@ -500,6 +509,7 @@ document.getElementById('debug').addEventListener('change', e => {
   e.target.blur()
 })
 
+document.getElementById('version').textContent = `V${VERSION}`
 showName()
 window.maquette = { ...view, doc, partsView, debugView, actions } // accès depuis la console, pour le débogage
 refresh()

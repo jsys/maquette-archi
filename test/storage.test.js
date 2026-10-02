@@ -78,3 +78,10 @@ test('history.clear : plus rien à annuler ni rétablir', async () => {
   h.clear()
   assert.equal(h.canUndo || h.canRedo, false)
 })
+
+test('fileName : nom sans accents ni espaces, date locale ; « maquette » à défaut', async () => {
+  const { fileName } = await import('../js/storage.js')
+  const day = new Date(2026, 9, 2)
+  assert.equal(fileName({ name: 'Maison Dubois, 1/100 été' }, day), 'maison-dubois-1-100-ete-2026-10-02.json')
+  assert.equal(fileName({}, day), 'maquette-2026-10-02.json')
+})

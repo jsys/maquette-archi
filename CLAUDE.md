@@ -59,6 +59,8 @@
   Rien de privé dans le dépôt ni dans son historique.
 - Site sur GitHub Pages, servi tel quel depuis la racine de `main` (`.nojekyll`) : **pousser sur
   `main`, c'est publier**.
+- **Version** : `js/version.js`, affichée dans l'en-tête, vaut `1.<nombre de pushs sur main>`.
+  L'incrémenter dans chaque push (`git log --oneline | wc -l` après le commit donne le nombre).
 - Chemins relatifs partout : le site doit marcher sous `/maquette-archi/` comme à la racine d'un
   domaine.
 - Clés du stockage navigateur préfixées `maquette.` : l'origine `jsys.github.io` est partagée par

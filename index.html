@@ -19,6 +19,7 @@
 <body>
   <header>
     <a class="depot" href="https://github.com/jsys/maquette-archi" target="_blank" rel="noopener">github.com/jsys/maquette-archi</a>
+    <span id="version" class="version"></span>
     <label>Grille
       <select id="grille">
         <option value="1">1 mm</option>
@@ -34,7 +35,6 @@
       <button type="button" class="secondaire" id="nouveau">Nouveau</button>
       <button type="button" class="secondaire" id="enregistrer" title="Nommer la maquette (⌘S ou Ctrl+S)">Enregistrer…</button>
       <button type="button" class="secondaire" id="ouvrir" title="Mes maquettes enregistrées dans ce navigateur">Ouvrir…</button>
-      <button type="button" class="secondaire" id="exporter">Exporter</button>
       <input type="file" id="fichier" accept=".json,application/json" hidden>
     </div>
     <button type="button" class="secondaire icone" id="aide" title="Raccourcis (?)" aria-label="Raccourcis">?</button>
@@ -45,9 +45,11 @@
     <form method="dialog">
       <h2>Enregistrer la maquette</h2>
       <label>Nom <input type="text" name="nom" required maxlength="80" autocomplete="off" spellcheck="false"></label>
-      <p class="aide">Dans ce navigateur. Ensuite, chaque changement y est enregistré tout seul.</p>
+      <p class="aide nouvelle">Dans ce navigateur. Ensuite, chaque changement y est enregistré tout seul.</p>
+      <p class="aide nommee">Un autre nom enregistre une copie ; « Renommer » change le nom de celle-ci.</p>
       <div class="boutons">
         <button value="annuler" class="secondaire" formnovalidate>Annuler</button>
+        <button value="renommer" class="secondaire nommee">Renommer</button>
         <button value="ok" class="principal">Enregistrer</button>
       </div>
     </form>
