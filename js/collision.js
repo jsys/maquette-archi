@@ -4,9 +4,12 @@
 // produits vectoriels de leurs arêtes deux à deux). Se toucher n'est pas se heurter : un
 // recouvrement de moins de EPS mm est permis, celui de deux plaques posées l'une contre l'autre.
 import { Box3, ShapeUtils, Vector2, Vector3 } from '../lib/three/three.core.js'
-import { clean, partMatrix, signedArea } from './geometry.js'
+import { clean, partMatrix, signedArea, worldBox } from './geometry.js'
 
 export const EPS = 0.01 // mm
+
+// La table (Y = 0) est un plancher : rien ne passe dessous.
+export const underTable = part => worldBox(part).min.y < -EPS
 
 // Profondeur du recouvrement de deux pièces, 0 si elles ne se heurtent pas.
 export function penetration(a, b) {
@@ -33,11 +36,15 @@ export function overlapping(parts) {
 }
 
 // Fait glisser `part` (même orientation) de la position `from` vers `to` sans traverser les
-// `obstacles` : X, puis Z, puis Y séparément, ce qui lui fait longer un mur au lieu de s'y
-// coller ; par pas de la moitié de la plus fine épaisseur au plus, pour ne jamais sauter de
+// `obstacles` ni la table : X, puis Z, puis Y séparément, ce qui lui fait longer un mur au lieu
+// de s'y coller ; par pas de la moitié de la plus fine épaisseur au plus, pour ne jamais sauter de
 // l'autre côté d'une plaque ; contact affiné par dichotomie. Renvoie la position atteinte.
-export function sweep(part, from, to, obstacles) {
-  const hits = position => obstacles.some(o => penetration({ ...part, position }, o) > 0)
+// `table: false` : la pièce est déjà sous la table, on la laisse en sortir.
+export function sweep(part, from, to, obstacles, { table = true } = {}) {
+  const hits = position => {
+    const moved = { ...part, position }
+    return (table && underTable(moved)) || obstacles.some(o => penetration(moved, o) > 0)
+  }
   const maxStep = Math.max(Math.min(part.thickness, ...obstacles.map(o => o.thickness)) / 2, 0.1)
   let position = [...from]
   for (const axis of [0, 2, 1]) {
@@ -57,7 +64,10 @@ export function sweep(part, from, to, obstacles) {
         if (hits(trial)) blocked = trial[axis]
         else free = trial[axis]
       }
-      position[axis] = free
+      // Le contact trouvé mord des 0,01 mm tolérés : au dixième rond, s'il reste libre (0 et non -0,01)
+      const round = [...position]
+      round[axis] = Math.round(free * 10) / 10
+      position[axis] = hits(round) ? free : round[axis]
       break
     }
   }

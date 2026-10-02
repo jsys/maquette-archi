@@ -83,3 +83,11 @@ test('rotatedPose : basculer une plaque à plat la relève sur la table, sans bo
   const turned = worldBox({ ...p, ...rotatedPose(p, [0, 1, 0], -Math.PI / 2) })
   assert.ok(near(turned.max.x - turned.min.x, 80) && near(turned.max.z - turned.min.z, 120))
 })
+
+test('sweep : la table est un plancher, sauf pour une pièce déjà dessous', () => {
+  const plate = flat(40, 40, [0, 30, 0]) // à 30 mm au-dessus de la table
+  assert.equal(sweep(plate, plate.position, [0, -50, 0], [])[1], 0) // descend jusqu'à la table, pile
+  assert.deepEqual(sweep(plate, plate.position, [0, 80, 0], []), [0, 80, 0]) // monte librement
+  const sunk = flat(40, 40, [0, -10, 0])
+  assert.deepEqual(sweep(sunk, sunk.position, [0, -5, 0], [], { table: false }), [0, -5, 0])
+})

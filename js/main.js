@@ -1,4 +1,6 @@
 // Point d'entrée : l'état de l'application (document, sélection) et les actions qui le modifient.
+import { Object3D } from 'three'
+import { TransformControls } from 'three/addons/controls/TransformControls.js'
 import { createScene } from './scene.js'
 import { createPartsView } from './parts-view.js'
 import { createPointer } from './pointer.js'
@@ -7,7 +9,7 @@ import { createDebugView } from './debug-view.js'
 import { createDocument, createPart, duplicatePart } from './model.js'
 import { nudge, placeOnTable, rotatedPose, worldBox } from './geometry.js'
 import { findSnap } from './snap.js'
-import { blockers, excessAlong, overlapping, penetration, sweep } from './collision.js'
+import { blockers, excessAlong, overlapping, penetration, sweep, underTable } from './collision.js'
 import { download, loadLocal, readFile, saveLocal } from './storage.js'
 import { createHistory } from './history.js'
 
@@ -34,8 +36,25 @@ const fr = n => n.toLocaleString('fr-FR', { maximumFractionDigits: 1 })
 // un redimensionnement, par exemple) : on doit pouvoir la dégager.
 const obstaclesFor = part => doc.parts.filter(p => p !== part && !p.hidden && !penetration(part, p))
 
+// Flèches de déplacement selon les axes, sur la pièce sélectionnée (rouge X, verte Y vers le haut,
+// bleue Z) ; seulement les flèches, sans les plans de three.js. Elles tiennent un repère posé au
+// centre de la pièce (l'origine de la pièce est un coin de son contour), que la pièce suit.
+const gizmo = new TransformControls(view.camera, view.renderer.domElement)
+Object.assign(gizmo, { size: 0.8, showXY: false, showYZ: false, showXZ: false })
+const handle = new Object3D()
+view.scene.add(handle, gizmo.getHelper())
+gizmo.addEventListener('change', view.requestRender)
+
+function placeHandle() {
+  const part = findPart(selectedId)
+  if (!part || part.hidden) return gizmo.detach()
+  worldBox(part).getCenter(handle.position)
+  gizmo.attach(handle)
+}
+
 function refresh() {
   partsView.sync(doc)
+  placeHandle()
   colliding = overlapping(doc.parts)
   partsView.highlight(hoveredId, selectedId, colliding)
   panels.render(doc, selectedId)
@@ -168,12 +187,13 @@ const panels = createPanels(actions)
 // Flèches du clavier : la pièce avance jusqu'au contact au plus, sans repasser par les panneaux
 function moveTo(id, position) {
   const part = findPart(id)
-  const reached = sweep(part, part.position, position, obstaclesFor(part))
+  const reached = sweep(part, part.position, position, obstaclesFor(part), { table: !underTable(part) })
   if (reached.every((v, i) => v === part.position[i])) return // bloquée
   remember(`nudge:${id}`)
   part.position = reached
   delete part.attachedTo
   partsView.move(part)
+  placeHandle()
   if (debugView.enabled) debugView.update(doc)
   view.requestRender()
   scheduleSave()
@@ -197,6 +217,7 @@ function dragStart(id) {
     quaternion: [...part.quaternion],
     position: [...part.position],
     obstacles: obstaclesFor(part),
+    table: !underTable(part),
     snap: attached ? { targetId: attached.partId, targetEdge: attached.edge } : null,
   }
 }
@@ -204,7 +225,7 @@ function dragStart(id) {
 function dragMove(id, target, free) {
   const part = findPart(id)
   part.quaternion = [...drag.quaternion]
-  drag.position = sweep({ ...part, position: drag.position }, drag.position, target, drag.obstacles)
+  drag.position = sweep({ ...part, position: drag.position }, drag.position, target, drag.obstacles, { table: drag.table })
   part.position = drag.position
   const targets = doc.parts.filter(p => p !== part && !p.hidden)
   const snap = free ? null : findSnap(part, targets, { pxToWorld, viewPoint: view.camera.position, prefer: drag.snap })
@@ -212,7 +233,8 @@ function dragMove(id, target, free) {
   if (snap) {
     const posed = { ...part, position: snap.position, quaternion: snap.quaternion }
     const hits = blockers(posed, drag.obstacles)
-    if (hits.length) {
+    if (drag.table && underTable(posed)) blocked = 'Sous la table'
+    else if (hits.length) {
       const excess = excessAlong(posed, hits, snap.line[1].clone().sub(snap.line[0]).normalize())
       blocked = excess === null ? 'Place occupée' : `Trop long de ${fr(excess)} mm`
     } else {
@@ -222,6 +244,7 @@ function dragMove(id, target, free) {
   }
   drag.snap = blocked ? null : snap
   partsView.move(part)
+  placeHandle()
   partsView.showSnap(snap?.line, blocked)
   if (debugView.enabled) debugView.update(doc, drag.snap)
   view.requestRender()
@@ -237,10 +260,44 @@ function dragEnd(id) {
   refresh()
 }
 
+// Flèches de déplacement : la pièce suit la flèche saisie, sans traverser les autres ni la table.
+// Un geste, une étape d'annulation.
+let axisDrag = null // { part, start, handleStart, position: dernière pose valide, obstacles, table }
+gizmo.addEventListener('dragging-changed', e => { view.controls.enabled = !e.value })
+gizmo.addEventListener('mouseDown', () => {
+  const part = findPart(selectedId)
+  remember()
+  axisDrag = {
+    part,
+    start: [...part.position],
+    handleStart: handle.position.clone(),
+    position: [...part.position],
+    obstacles: obstaclesFor(part),
+    table: !underTable(part),
+  }
+})
+gizmo.addEventListener('objectChange', () => {
+  if (!axisDrag) return
+  const { part, start, handleStart } = axisDrag
+  const delta = handle.position.clone().sub(handleStart).round() // au mm
+  const target = [start[0] + delta.x, start[1] + delta.y, start[2] + delta.z]
+  axisDrag.position = sweep(part, axisDrag.position, target, axisDrag.obstacles, { table: axisDrag.table })
+  part.position = axisDrag.position
+  handle.position.copy(handleStart).add({ x: part.position[0] - start[0], y: part.position[1] - start[1], z: part.position[2] - start[2] })
+  delete part.attachedTo
+  partsView.move(part)
+  if (debugView.enabled) debugView.update(doc)
+})
+gizmo.addEventListener('mouseUp', () => {
+  axisDrag = null
+  refresh()
+})
+
 createPointer({
   canvas: view.renderer.domElement,
   camera: view.camera,
   controls: view.controls,
+  gizmo,
   partsView,
   findPart,
   onHover: id => {
@@ -279,8 +336,14 @@ addEventListener('keydown', e => {
   if (e.key === '?') return help.showModal()
   if (e.key === 'Escape') return actions.select(null)
   if (!selectedId) return
-  const step = nudge(screenAway(), e.key)
-  if (step) {
+  // Monter et descendre : Alt+↑/↓, ou Pg.préc./Pg.suiv. (fn+↑/↓ sur Mac)
+  const lift = { PageUp: 1, PageDown: -1, ...(e.altKey && { ArrowUp: 1, ArrowDown: -1 }) }[e.key]
+  const step = !lift && nudge(screenAway(), e.key)
+  if (lift) {
+    e.preventDefault()
+    const [x, y, z] = findPart(selectedId).position
+    moveTo(selectedId, [x, y + lift * (e.shiftKey ? 10 : 1), z])
+  } else if (step) {
     e.preventDefault()
     const [x, y, z] = findPart(selectedId).position
     const d = e.shiftKey ? 10 : 1

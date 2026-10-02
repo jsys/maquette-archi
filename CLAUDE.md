@@ -37,6 +37,9 @@
   heurterait est refusé, les pièces qui se chevauchent quand même sont entourées de rouge.
 - Rotation (`rotatedPose`) : R quart de tour vertical, B bascule vers soi, Maj l'autre sens ; le
   point le plus bas de la pièce ne bouge pas.
+- Flèches de déplacement (TransformControls, plans masqués) sur un repère posé au centre de la
+  pièce sélectionnée ; la pièce suit, au mm, par `sweep`. La table (Y = 0) est un plancher.
+  Clavier : Alt+↑/↓ ou Pg.préc./Pg.suiv. pour monter et descendre.
 - `js/debug-view.js` : mode debug (case « Debug » de l'en-tête), bords et sommets par-dessus tout.
 - `js/history.js` : annuler et rétablir par instantanés du document ; `main.js` photographie juste
   avant chaque changement (`remember`), une rafale de même nature ne fait qu'une étape.
