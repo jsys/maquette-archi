@@ -70,4 +70,6 @@
 
 - Serveur local : `python3 -m http.server 8000`, puis http://localhost:8000 (les modules ES ne se
   chargent pas en `file://`).
-- Tests : `node --test`, dès les premiers modules purs.
+- Tests : `node --test`.
+- Avant chaque push : `node tools/check-imports.mjs` (casse des imports et fichiers bien commités :
+  macOS ignore la casse, GitHub Pages non).
